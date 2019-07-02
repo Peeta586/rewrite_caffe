@@ -133,7 +133,7 @@ endif()
 
 # ---------------- warning 
 # 这里添加的编译器flags，是用来屏蔽特定类型的警告的。虽说眼不见心不烦，关掉后少些warning输出
-caffe_warning_disable(CMAKE_CXX_FLAGS -Wno-sign-compare -Wno-uninitialized)
+caffe_warnings_disable(CMAKE_CXX_FLAGS -Wno-sign-compare -Wno-uninitialized)
 
 # -------------------- config generation
 # 将caffe_config.h.in中的一些变量或者宏，生成到caffe_config.h
@@ -152,4 +152,93 @@ include_directories(${PEOJECT_BINARY_DIR})
 # cuda_compile() does not have per-call dependencies or include pathes
 # (cuda_compile() has per-call flags, but we set them here too for clarity)
 #
-# list(REMOVE_ITEM ...) invocations remove PRIVATE and PUBLIC keywords from collected definitions and include pathesvcd 
+# list(REMOVE_ITEM ...) invocations remove PRIVATE and PUBLIC keywords from collected definitions and include pathes
+# 擦亮眼睛：Caffe的cmake脚本中分别定义了Caffe_INCLUDE_DIR和Caffe_INCLUDE_DIRS两个变量，只相差一个S，稍不留神容易混掉：
+### 不带S的值是$Caffe_ROOT/include，
+### 带S的值是各个依赖库的头文件搜索路径（在Dependencies.cmake中多次list(APPEND得到的。类似的，Caffe_DEFINITIONS也是在Dependencies.cmake中设定的。
+#这里判断出如果有CUDA的话就把Caffe_INCLUDE_DIRS变量中的PUBLIC和PRIVATE都去掉，把Caffe_DEFINITIONS中的PUBLIC和PRIVATE也去掉。
+
+if(HAVE_CUDA)
+    # pass include pathes to cuda include_directories()
+    set(Caffe_ALL_INCLUDE_DIRS ${Caffe_INCLUDE_DIRS})
+    list(REMOVE_ITEM Caffe_ALL_INCLUDE_DIRS PRIVATE PUBLIC)
+    cuda_include_directories(${Caffe_INCLUDE_DIR} ${Caffe_SRC_DIR} ${Caffe_ALL_INCLUDE_DIRS})
+
+    # add definition to nvcc flags directly，　definitions 应该是各库的表示
+    set(Caffe_ALL_DEFINITIONS ${Caffe_DEFINITIONS})
+    list(REMOVE_ITEM Caffe_ALL_DEFINITIONS PRIVATE PUBLIC)
+    list(APPEND CUDA_NVCC_FLAGS ${Caffe_ALL_DEFINITIONS})
+
+endif()
+
+# -------------------sudirectories
+# 使用add_subdirectory()，意思是说把子目录中的CMakeLists.txt文件加载过来执行，从这个角度看似乎等同于include()命令。
+# 实则不然，因为它除了按给定目录名字后需要追加"/CMakeLists.txt"来构成完整路径外，往往都是包含一个target(类似于git中的submodule了）
+# 同时还可以设定别的一些参数:
+### 指定binary_dir
+### 设定EXCLUDE_FROM_ALL，也就是”搞一个独立的子工程“，此时需要有project()指令，并且不被包含在生成的.sln工程的ALL目标中，需要单独构建。
+# 各子目录的功能：
+### gtest：　googletest的源码
+### src/caffe: caffe的源码构建，因为前面做了很多操作（依赖库、路径，etc），这里写的就比较少。任务只有2个：构建一个叫做caffe的库，以及test
+### tool:，这一子目录下每一个cpp文件都生成一个xxx.bin的目标，而最常用的就是caffe训练接口build/caffe这个可执行文件了
+### examples 这一子目录下有cpp_classification的C++代码，以及mnist，cifar10，siamse这三个例子的数据转换的代码，这四个都是C++文件，每一个都被编译出一个可执行
+### python: pycaffe接口，python/caffe/_caffe.cpp编译出动态库
+### matlab: matlab接口，./+caffe/private/caffe_.cpp编译出？编译出一个定制的目标，至于是啥类型，也许是动态库吧，玩过matlab和C/C++混编的都知道，用mex编译C/C++为.mexa文件，然后matlab调用.mexa文件，其实就是动态库
+### docs: 文档，doxygen、jekyll都来了，以及拷贝每一个.ipynb文件。没错，
+
+add_subdirectory(src/gtest)
+add_subdirectory(src/caffe)
+add_subdirectory(tools)
+add_subdirectory(examples)
+add_subdirectory(python)
+# add_subdirectory(matlab)
+add_subdirectory(docs)
+
+# ----------- linter target
+# add_custom_command()能定制各种target，只要你把想要执行的shell脚本命令用cmake的语法来写就可以了，很强大
+# 这里依然是定制的target，具体看来是调用scripts/cpplint.py(谷歌官方C++代码风格检查工具）来执行代码风格检查。
+# （G家的C++风格有一点不太好：缩进两个空格太少了，费眼睛，强烈建议和Visual Studio保持一致，用tab并且tab宽度为4个空格）
+# 所谓linter就是语法检查器，除了cpplint其实还可以用cpp_check、gcc、clang等
+add_custom_target(lint COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/lint.cmake)
+
+# ----pytest target
+# add_custom_command()能定制各种target，只要你把想要执行的shell脚本命令用cmake的语法来写就可以了，很强大 (也就是调用shell命令生成自定义的target)
+# 如果开启了BUILD_python开关，那么执行一个定制的target（执行pytest）。
+# add_dependencies()意思是指定依赖关系，这里要求pycaffe目标完成后再执行pytest目标，
+# 因为pytest需要用到pycaffe生成的caffe模块。pycaffe在前面提到的add_subdirectory(python)中被构建
+if(BUILD_python)
+    add_custom_target(pytest COMMAND python${python_version} -m unittest discover -s caffe/test WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/python)
+    add_dependencies(pytest pycaffe)
+endif()
+
+# ----- uninstall target
+# 这里是添加”uninstall"这一target，具体定制的target其实就是执行cmake/Uninstall.cmake脚本。这个脚本根据cmake/Uninstall.cmake.in做变量取值替换等来生成得到
+# 从Uninstall.cmake.in配置文件，生成Uninstall.cmake, 供后面Uninstall target生成时使用
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Uninstall.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/Uninstall.cmake
+    IMMEDIATE @ONLY
+)
+
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake/Uninstall.cmake    
+)
+
+# -------------------- configuration summary
+caffe_print_configuration_summary()
+
+#---------------------- export configs generation
+# 在Caffe根目录的CMakeLists.txt的最后，是打印各种配置的总的情况，以及输出各种配置(后者其实包含了install()指令的调用)
+# 包含了target的构建，其中用到export(TARGETS ...)：Export targets from the build tree for use by outside projects.
+
+# 这个函数使用了一个命令： export(TARGETS caffe caffeproto FILE "${PROJECT_BINARY_DIR}/CaffeTargets.cmake")
+# Create a file <filename> that may be included by outside projects to import targets from the current project’s build tree
+# 这句命令的意思是将该工程创建的caffe,caffe_proto（在tools/CMakeLists.txt中被创建）, 暴露出，输出到CaffeTargets.cmake，　这样别的工程如果要引用这个工程的caffe库，则用find_package()去找这个cmake即可
+
+# 也用了export(PACKAGE Caffe)，Store the current build directory in the CMake user package registry for package <name>. 
+# The find_package command may consider the directory while searching for package <name>.
+# 随后target被创建用命令 install(EXPORT CaffeTargets DESTINATION ${install_cmake_suffix})； 　如上所述：CaffeTargets 被export创建
+# The EXPORT form is useful to help outside projects use targets built and installed by the current project;
+
+# 初期，出现一个错误，因为caffe target 没有获取，所以导致了export caffe 出错
+caffe_generate_export_configs()
