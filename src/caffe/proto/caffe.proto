@@ -1,0 +1,10 @@
+//指定protobuf语法版本
+syntax = "proto2";
+
+//包名
+package caffe;
+
+// specifies the shape (dimensions) of a blob.
+message BlobShape{
+    repeated int64 dim = 1 [packed = true];
+}

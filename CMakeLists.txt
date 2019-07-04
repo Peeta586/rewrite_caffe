@@ -77,6 +77,7 @@ caffe_option(BUILD_python "build python wrapper" ON)
 set(python_version "2" CACHE STRING "Specify which python version to use")
 caffe_option(BUILD_matlab "build matlab wrapper" OFF IF UNIX OR APPLE)
 caffe_option(BUILD_docs "build documentation" ON IF UNIX OR APPLE)
+# 通过再Dependices.cmake中控制list(APPEND Caffe_DEFINITIONS PRIVATE -DWITH_PYTHON_LAYER)，生成WITH_PYTHON_LAYER宏变量
 caffe_option(BUILD_python_layer "build the caffe python layer" ON)
 caffe_option(USE_OPENCV "build with opencv suport" ON)
 caffe_option(USE_LEVELDB "build with levelDB" ON)
@@ -100,7 +101,7 @@ caffe_option(USE_HDF5 "build with hdf5" ON)
 ### Caffe基于cmake编译，依赖于Boost，系统里用apt或brew装了Boost，同时也自行编译了高版本Boost，现在Caffe编译时cmake只认自行编译版的Boost，指定N大查找顺序也不能找到系统的Boost。切换已安装的多个Boost给CMake find_package()，这时候需要看看FindBoost.cmake是怎么写的，必须提供它里面说的字样的变量（表示include和lib的查找路径），才能让find_package()起作用。
 ### CMake编译安装了多个版本的Caffe（比如官方Caffe、SSD的Caffe），~/.cmake目录下会缓存一个caffe，而现在手头有一个做人脸检测的工程依赖Caffe，而你希望它用官方Caffe而不是SSD-Caffe，这个缓存目录很可能捣乱，这个我认为是某些项目比如Caffe的export输出是多余的，反而容易造成混淆。
 # 只需要注意如果某个包你安装了但是cmake却没有找到，那就需要在find_package()前进行设定，以及之后排
-include(cmake/Dependencies.cmake)
+include(cmake/Dependencies.cmake) # 有protobuf的设置
 
 # ---------flags
 # 通过设定CMAKE_CXX_FLAGS，cmake生成各自平台的makefile、.sln或xcodeproject文件时设定同样的CXXFLAGS给编译器。
@@ -165,10 +166,14 @@ if(HAVE_CUDA)
     cuda_include_directories(${Caffe_INCLUDE_DIR} ${Caffe_SRC_DIR} ${Caffe_ALL_INCLUDE_DIRS})
 
     # add definition to nvcc flags directly，　definitions 应该是各库的表示
+    # Caffe_ALL_DEFINITIONS 在cmake/Dependencies.cmake中定义，
+    ##  而且利用list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_LMDB)语句累加不同的变量定义
+    ## 这个只是用来标记的，并没有实际含义，到时候可以根据这个标记变量过滤不同的item，
+    ## PRIVATE PUBLIC 和-DUSE_LMDB是等级别的，在使用时根据需要去掉，如第二行list(REMOVE_ITEM Caffe_ALL_DEFINITIONS PRIVATE PUBLIC)的作用
+    message(STATUS "&&&&&&&&&&&&&&& cmake definition ${Caffe_DEFINITIONS}")
     set(Caffe_ALL_DEFINITIONS ${Caffe_DEFINITIONS})
     list(REMOVE_ITEM Caffe_ALL_DEFINITIONS PRIVATE PUBLIC)
     list(APPEND CUDA_NVCC_FLAGS ${Caffe_ALL_DEFINITIONS})
-
 endif()
 
 # -------------------sudirectories
@@ -208,7 +213,7 @@ add_custom_target(lint COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/l
 # 因为pytest需要用到pycaffe生成的caffe模块。pycaffe在前面提到的add_subdirectory(python)中被构建
 if(BUILD_python)
     add_custom_target(pytest COMMAND python${python_version} -m unittest discover -s caffe/test WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/python)
-    add_dependencies(pytest pycaffe)
+    # add_dependencies(pytest pycaffe)
 endif()
 
 # ----- uninstall target
@@ -241,4 +246,4 @@ caffe_print_configuration_summary()
 # The EXPORT form is useful to help outside projects use targets built and installed by the current project;
 
 # 初期，出现一个错误，因为caffe target 没有获取，所以导致了export caffe 出错
-caffe_generate_export_configs()
+# caffe_generate_export_configs()

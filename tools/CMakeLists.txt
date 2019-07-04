@@ -7,7 +7,12 @@ file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 # build each source file independently
 # 每次loop, source被赋值一个文件
 foreach(source ${srcs})
-    # 应该是去文件名，消除后缀名
+    # 应该是去文件名，消除后缀名,得到一个完整文件名中的特定部分
+    # DIRECTORY = Directory without file name
+    #    NAME      = File name without directory
+    #    EXT       = File name longest extension (.b.c from d/a.b.c)
+    #    NAME_WE   = File name without directory or longest extension
+    #    PATH      = Legacy alias for DIRECTORY (use for CMake <= 2.8.11)
     get_filename_component(name ${source} NAME_WE)
     message(STATUS ${name})
 
