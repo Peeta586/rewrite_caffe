@@ -1,8 +1,11 @@
+# cmake_minimum_required(VERSION 3.5.1)
+# include(../cmake/Targets.cmake)
 # Collect source files to get target
 # these soure files is stored into "srcs" variable
 # GLOB_RECURSE递归遍历 .cpp文件，
 # ${CMAKE_CURRENT_SOURCE_DIR}表示该CMakeLists.txt所在的目录， tools/
 file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp) 
+message(STATUS "variable srcs is ${srcs}")
 
 # build each source file independently
 # 每次loop, source被赋值一个文件
@@ -30,7 +33,7 @@ foreach(source ${srcs})
     #  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib"
     #  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib"
     #  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
-    caffe_default_properties(${name}) # ?
+    caffe_default_properties(${name})
 
     # set back RUNTIME_OUTPUT_DIRECTORY
     # function(caffe_set_runtime_directory target dir)
@@ -58,6 +61,7 @@ foreach(source ${srcs})
     endif()
 
     # install
+    # message(STATUS "install target ${name}")
     install(TARGETS ${name} DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 endforeach(source)

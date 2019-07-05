@@ -73,7 +73,7 @@ caffe_option(CPU_ONLY "Build caffe without cuda support" OFF) # TODO rename to U
 caffe_option(USE_CUDNN "build caffe with cudnn library support" ON IF NOT CPU_ONLY)
 caffe_option(USE_NCCL "build caffe with nccl library support" OFF)
 caffe_option(BUILD_SHARED_LIBS "build shared libraries" ON)
-caffe_option(BUILD_python "build python wrapper" ON)
+caffe_option(BUILD_python "build python wrapper" OFF)
 set(python_version "2" CACHE STRING "Specify which python version to use")
 caffe_option(BUILD_matlab "build matlab wrapper" OFF IF UNIX OR APPLE)
 caffe_option(BUILD_docs "build documentation" ON IF UNIX OR APPLE)
@@ -194,7 +194,7 @@ endif()
 add_subdirectory(src/gtest)
 add_subdirectory(src/caffe)
 add_subdirectory(tools)
-add_subdirectory(examples)
+# add_subdirectory(examples)
 add_subdirectory(python)
 # add_subdirectory(matlab)
 add_subdirectory(docs)
@@ -246,4 +246,4 @@ caffe_print_configuration_summary()
 # The EXPORT form is useful to help outside projects use targets built and installed by the current project;
 
 # 初期，出现一个错误，因为caffe target 没有获取，所以导致了export caffe 出错
-# caffe_generate_export_configs()
+caffe_generate_export_configs()
