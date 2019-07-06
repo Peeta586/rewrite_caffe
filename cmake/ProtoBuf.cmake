@@ -1,7 +1,7 @@
 # Finds Google Protocol Buffers library and compilers and extends
 # the standard cmake script with version and python generation support
 
-find_package( Protobuf REQUIRED )
+find_package( Protobuf 2.6.1 REQUIRED )
 list(APPEND Caffe_INCLUDE_DIRS PUBLIC ${PROTOBUF_INCLUDE_DIR})
 list(APPEND Caffe_LINKER_LIBS PUBLIC ${PROTOBUF_LIBRARIES})
 
@@ -81,6 +81,7 @@ function(caffe_protobuf_generate_cpp_py output_dir srcs_var hdrs_var python_var)
       COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} --python_out ${PROJECT_BINARY_DIR}/include --proto_path ${PROJECT_SOURCE_DIR}/src ${_protoc_include} ${abs_fil}
       DEPENDS ${abs_fil}
       COMMENT "Running C++/Python protocol buffer compiler on ${fil}" VERBATIM )
+    # message(STATUS "%%%%%%%%%%%%%%%%%%%%%------------------- output: pb.cc, pb.h, pb2.py")
   endforeach()
 
   set_source_files_properties(${${srcs_var}} ${${hdrs_var}} ${${python_var}} PROPERTIES GENERATED TRUE)

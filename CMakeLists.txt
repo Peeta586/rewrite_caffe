@@ -73,7 +73,7 @@ caffe_option(CPU_ONLY "Build caffe without cuda support" OFF) # TODO rename to U
 caffe_option(USE_CUDNN "build caffe with cudnn library support" ON IF NOT CPU_ONLY)
 caffe_option(USE_NCCL "build caffe with nccl library support" OFF)
 caffe_option(BUILD_SHARED_LIBS "build shared libraries" ON)
-caffe_option(BUILD_python "build python wrapper" OFF)
+# caffe_option(BUILD_python "build python wrapper" OFF)
 set(python_version "2" CACHE STRING "Specify which python version to use")
 caffe_option(BUILD_matlab "build matlab wrapper" OFF IF UNIX OR APPLE)
 caffe_option(BUILD_docs "build documentation" ON IF UNIX OR APPLE)
@@ -111,7 +111,8 @@ include(cmake/Dependencies.cmake) # 有protobuf的设置
 
 if (UNIX OR APPLE)
     # -fPIC表示使用位置无关（相对位置）编译程序地址，-Wall　表示编译后输出所有警告
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" -fPIC -Wall)
+    # 这出错了，因为把　-fPIC, -Wall 放到引号外面了，因此make 生成了
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall")
     # list(APPEND CMAKE_CXX_FLAGS "-fPIC -Wall")
 endif()
 
@@ -126,11 +127,11 @@ caffe_set_caffe_link()
 # 需注意：　通常执行cmake后最前面会输出它所使用的C、C++编译器的可执行文件完整路径，然后一个同事的机器上把CXX环境变量设为/usr/bin/gcc，
 # 导致编译.cpp文件时是用CXX这一环境变量——也就是gcc——来编译.cpp文件。编译.cpp，如果是C++编译器来编译，链接阶段默认会把标准库链接进去，而现在是C编译器，没有明确指出要链接C++标准库，就会导致链接出问题，
 # 虽然他的CMakeLists.txt中曾经加入过libstdc++库，但是显然这很容易翻车，CXX环境变量不应该设定为/usr/bin/gcc; C编译器ＧＣＣ编译.cpp会出现链接错误
+# message(STATUS "${USE_libstdcpp}")  ON
 if (USE_libstdcpp)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-    message("-- Warning: forcing libstdc++ (controlled by USE_libdtdcpp option in cmake")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++ -std=c++11")
+    message("-- Warning: forcing libstdc++ (controlled by USE_libstdcpp option in cmake")
 endif()
-
 
 # ---------------- warning 
 # 这里添加的编译器flags，是用来屏蔽特定类型的警告的。虽说眼不见心不烦，关掉后少些warning输出
@@ -191,13 +192,13 @@ endif()
 ### matlab: matlab接口，./+caffe/private/caffe_.cpp编译出？编译出一个定制的目标，至于是啥类型，也许是动态库吧，玩过matlab和C/C++混编的都知道，用mex编译C/C++为.mexa文件，然后matlab调用.mexa文件，其实就是动态库
 ### docs: 文档，doxygen、jekyll都来了，以及拷贝每一个.ipynb文件。没错，
 
-add_subdirectory(src/gtest)
+# add_subdirectory(src/gtest)
 add_subdirectory(src/caffe)
 add_subdirectory(tools)
 # add_subdirectory(examples)
-add_subdirectory(python)
+# add_subdirectory(python)
 # add_subdirectory(matlab)
-add_subdirectory(docs)
+# add_subdirectory(docs)
 
 # ----------- linter target
 # add_custom_command()能定制各种target，只要你把想要执行的shell脚本命令用cmake的语法来写就可以了，很强大
