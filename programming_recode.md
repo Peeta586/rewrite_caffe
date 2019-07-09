@@ -1,4 +1,5 @@
 # rewriting-caffe recode
+[TOC]
 按照一步一步的来实现caffe工程
 
 ## 1. 编写CMakeLists.txt
@@ -7,7 +8,10 @@
 - 在编写每个模块时，能跑通整个工程
 
 ## 2. 文件功能说明
-#include "caffe/proto/caffe.pb.h" 包含caffe空间定义
+```
+  #include "caffe/proto/caffe.pb.h"
+```
+包含caffe空间定义
 如果不添加该文件的include，则会产生caffe没定义; 因为它是第一个生成的.h文件，且含有namespace caffe {}的caffe命名空间定义
 ## 3. caffe::string 的来源
 是有namespace caffe{
@@ -68,6 +72,8 @@ Generator expressions have the form $<...>. To avoid confusion, this page deviat
 
 Generator expressions can be nested, as shown in most of the examples below.
 
+## 6. device_alternate.hpp
+配置 cuda的错误检查宏，以及配置block数目和threads数目
 
 # 错误记录
 
