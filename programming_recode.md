@@ -75,6 +75,159 @@ Generator expressions can be nested, as shown in most of the examples below.
 ## 6. device_alternate.hpp
 配置 cuda的错误检查宏，以及配置block数目和threads数目
 
+## 7. common.hpp 解析
+```C++
+这里有点绕，特别是Caffe类里面有个RNG，RNG这个类里面还有个Generator类
+在RNG里面会用到Caffe里面的Get()函数来获取一个新的Caffe类的实例（如果不存在的话）。
+然后RNG里面用到了Generator。Generator是实际产生随机数的。
+（1）Generator类
+该类有两个构造函数：
+Generator()//用系统的熵池或者时间来初始化随机数
+explicit Generator(unsigned int seed)// 用给定的种子初始化
+（2）RNG类
+RNG类内部有generator_，generator_是Generator类的实例
+该类有三个构造函数：
+RNG(); //利用系统的熵池或者时间来初始化RNG内部的generator_
+explicit RNG(unsigned int seed); // 利用给定的seed来初始化内部的generator_
+explicit RNG(const RNG&);// 用其他的RNG内部的generator_设置为当前的generator_
+（3）Caffe类
+1)含有一个Get函数，该函数利用Boost的局部线程存储功能实现
+// Make sure each thread can have different values.
+// boost::thread_specific_ptr是线程局部存储机制
+// 一开始的值是NULL
+static boost::thread_specific_ptr<Caffe> thread_instance_;
+
+Caffe& Caffe::Get() {
+  if (!thread_instance_.get()) {// 如果当前线程没有caffe实例
+    thread_instance_.reset(new Caffe());// 则新建一个caffe的实例并返回
+  }
+  return *(thread_instance_.get());
+
+2)此外该类还有
+SetDevice
+DeviceQuery
+mode
+set_mode
+set_random_seed
+solver_count
+set_solver_count
+root_solver
+set_root_solver
+等成员函数
+3)内部还有一些比较技巧性的东西比如：
+// CUDA: various checks for different function calls.
+//  防止重定义cudaError_t，这个以前在linux代码里面看过
+// 实际上就是利用变量的局部声明
+#define CUDA_CHECK(condition) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cudaError_t error = condition; \
+    CHECK_EQ(error, cudaSuccess) << " " << cudaGetErrorString(error); \
+  } while (0)
+
+```
+### 7.1  boost::thread_specific_ptr是线程局部存储机制
+大多数函数都不是可重入的。这也就是说在某一个线程已经调用了一个函数时，如果你再调用同一个函数，那么这样是不安全的。一个不可重入的函数通过连续的调用来保存静态变量或者是返回一个指向静态数据的指针。 举例来说，std::strtok就是不可重入的，因为它使用静态变量来保存要被分割成符号的字符串。
+
+有两种方法可以让不可重用的函数变成可重用的函数。第一种方法就是改变接口，用指针或引用代替原先使用静态数据的地方。比方说，POSIX定义了strok_r，std::strtok中的一个可重入的变量，它用一个额外的char**参数来代替静态数据。这种方法很简单，而且提供了可能的最佳效果。但是这样必须改变公共接口，也就意味着必须改代码。另一种方法不用改变公有接口，而是用本地存储线程（thread local storage）来代替静态数据（有时也被成为特殊线程存储，thread-specific storage）。
+
+Boost线程库提供了智能指针boost::thread_specific_ptr来访问本地存储线程。每一个线程第一次使用这个智能指针的实例时，它的初值是NULL，所以必须要先检查这个它的只是否为空，并且为它赋值。Boost线程库保证本地存储线程中保存的数据会在线程结束后被清除。
+
+List5是一个使用boost::thread_specific_ptr的简单例子。其中创建了两个线程来初始化本地存储线程，并有10次循环，每一次都会增加智能指针指向的值，并将其输出到std::cout上（由于std::cout是一个共享资源，所以通过互斥体进行同步）。main线程等待这两个线程结束后就退出。从这个例子输出可以明白的看出每个线程都处理属于自己的数据实例，尽管它们都是使用同一个boost::thread_specific_ptr。
+
+**-----------------------另一个解释**
+
+对于线程局部存储的概念，正如字面意思，每个变量在每个线程中都有一份独立的拷贝。通过使用线程局部存储技术，可以避免线程间的同步问题，并且不同的线程可以使用不同的日志设置。通过 Boost 库的智能指针 boost::thread_specific_ptr 来存取线程局部存储，每个线程在第一次试图获取这个智能指针的实例时需要对它进行初始化，并且线程局部存储的数据在线程退出时由 Boost 库来释放。
+
+使用线程局部变量的多线程日志的优势：
+
+使用 static 的线程局部变量很容易能实现线程级别的单例日志系统；
+通过智能指针 boost::thread_specific_ptr 来存取线程局部存储的生成和清除工作简单方便；
+使用线程局部变量很容易实现对一个已有的单例日志系统进行多线程支持的改造，并且不用改动任何原来的日志接口；
+
+## 8. rng.hpp中的iterator_trait
+
+这个类的作用是得到某个迭代器的相关信息。比如 iterator_traits<vector<int>::iterator>::difference_type。
+
+这个API用于返回模板的具体相关信息，包括迭代器每一项之间的距离difference type， 迭代器每一项的值。iterator_traits负责萃取迭代器的特性。
+
+1、value type 用来表示迭代器所指对象的型别；
+2、difference type 用来表示两个迭代器之间的距离；
+3、reference 为引用类型；
+4、pointer 为指针类型；
+5、iterator_category 表明迭代器的类型；
+
+### 8.1 value type
+
+用来表示迭代器所指对象的型别；
+
+### 8.2 difference_type
+用来表示两个迭代器之间的距离；头尾之间的距离为容器的最大容量。
+difference_type是一种常用的迭代器型别，用来表示两个迭代器之间的距离，因此它也可以用来表示一个容器的最大容量，因为对于连续空间的容器而言，头尾之间的距离就是其最大容量。
+
+### 8.3 iterator_category 迭代器的类别
+返回迭代器类别，
+迭代器被分为五类：
+1、Input Iterator：这种迭代器所指对象，不允许外界改变，只读（read only）；
+2、Output Iterator：唯写（write only）；
+3、Forward Iterator：允许「写入型」算法（例如 replace()）在此种迭代器所形成的区间上做读写动作；
+4、Bidirectional Iterator：可双向移动。某些算法需要逆向走访某个迭代器区间（例如逆向拷贝某范围内的元素），就可以使用 Bidirectional Iterators；
+5、Random Access Iterator：前四种迭代器都只供应一部份指标算术能力（前3种支持 operator++ ，第4种再加上 operator--），第5种则涵盖所有指标算术能力，包括 p+n, p-n, p[n], p1-p2, p1<p2.
+
+```C++
+input_iterator_tag
+output_iterator_tag
+forward_iterator_tag
+bidirectional_iterator_tag
+random_access_iterator_tag
+```
+
+## 9.src/caffe/test/CMakeLists.txt中CACHE STRING
+CMake 变量包含 Normal Variables、Cache Variables。
+### 9.1 定义
+- **Normal Variables**： 通过 set(<variable> <value>... [PARENT_SCOPE])这个命令来设置的变量就是 Normal Variables。例如 set(MY_VAL "666") ，此时 MY_VAL 变量的值就是 666。
+- **Cache Variables**： 通过 set(<variable> <value>... CACHE <type> <docstring> [FORCE])这个命令来设置的变量就是 Cache Variables。例如 set(MY_CACHE_VAL "666" CACHE STRING INTERNAL)，此时 MY_CACHE_VAL 就是一个 CACHE 变量。
+
+### 9.2 两种变量的作用域原理和使用
+#### 9.2.1 ​ Normal Variables
+作用域属于整个 CMakeLists.txt 文件，当该文件包含了 add_subdirectory()、include()、macro()、function()语句时，会出现两种不同的效果:
+- 包含 add_subdirectory()、function()。（本质是值拷贝）:假设，我们在工程根目录 CMakeLists.txt 文件中使用 add_subdirectory(src) 包含另一个 src 目录，在 src 目录中有另一个 CMakeLists.txt 文件。以根目录 CMake 文件为父目录，src 目录为子目录，此时子目录 CMake 文件会拷贝一份父目录文件的 Normal 变量。需要说明的是，我们在子目录中如果想要修改父目录 CMake 文件包含的 Normal 变量。必须通过 set(... PARENT_SCOPE) 的方式, 再src目录下需要写set(MY_VAL "777" PARENT_SCOPE) # 修改处。
+- 包含 include()、macro() （本质有点类似 c 中的 #include 预处理含义），会直接更改
+#### 9.2.2 Cache Variables
+**相当于一个全局变量**，我们在同一个 cmake 工程中都可以使用。Cache 变量有以下几点说明
+- Cache 变量 CMAKE_INSTALL_PREFIX 默认值是 /usr/local (可以在生成的 CMakeCache.txt 文件中查看)，这时候如果我们 在某个 CMakeLists.txt 中，仍然使用 set(CMAKE_INSTALL_PREFIX "/usr")，那么此时我们 install 的时候，CMake 以后面的 /usr 作为 CMAKE_INSTALL_PREFIX 的值，这是因为 CMake 规定，有一个与 Cache 变量同名的 Normal 变量出现时，后面使用这个变量的值都是以 Normal 为准，如果没有同名的 Normal 变量，CMake 才会自动使用 Cache 变量。
+- 所有的 Cache 变量都会出现在 CMakeCache.txt 文件中。这个文件是我们键入 cmake .命令后自动出现的文件。打开这个文件发现，CMake 本身会有一些默认的全局 Cache 变量。例如：CMAKE_INSTALL_PREFIX、CMAKE_BUILD_TYPE、CMAKE_CXX_FLAGSS 等等。可以自行查看。当然，我们自己定义的 Cache 变量也会出现在这个文件中。Cache 变量定义格式为 set(<variable> <value> CACHE STRING INTERNAL)。这里的 STRING可以替换为 BOOL FILEPATH PATH ，但是要根据前面 value 类型来确定.
+- 修改 Cache 变量。可以通过 set(<variable> <value> CACHE INSTERNAL FORCE)，另一种方式是直接在终端中使用 cmake -D var=value ..来设定默认存在的CMake Cache 变量。
+
+## 10. CMake 的function
+```C++
+# Filter out all files that are not included in selected list
+# Usage:
+#   caffe_leave_only_selected_tests(<filelist_variable> <selected_list>)
+function(caffe_leave_only_selected_tests file_list)
+  # ARGN 表示<selected_list>的传入, ARGN是后面参数的一个占位符，
+  # 如果用caffe_leave_only_selected_tests(var1, var2), 那么ARGN就是var2
+  if(NOT ARGN)
+    return() # blank list means leave all
+  endif()
+  # message(STATUS "caffe_leave_only_selected_tests - ARGN: ${ARGN}")
+  string(REPLACE "," ";" __selected ${ARGN})
+  list(APPEND __selected caffe_main)
+
+  # message(STATUS "caffe_leave_only_selected_tests, file_list: ${${file_list}}")
+  set(result "")
+  foreach(f ${${file_list}})
+    get_filename_component(name ${f} NAME_WE)
+    string(REGEX REPLACE "^test_" "" name ${name})
+    list(FIND __selected ${name} __index)
+    if(NOT __index EQUAL -1)
+      list(APPEND result ${f})
+    endif()
+  endforeach()
+  set(${file_list} ${result} PARENT_SCOPE)
+endfunction()
+```
+
 # 错误记录
 
 ## 1. proto编译错误
@@ -112,3 +265,10 @@ src/caffe/CMakeFiles/caffeproto.dir/__/__/include/caffe/proto/caffe.pb.cc.o: inc
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall")
 所以修改后错误消失
 ```
+
+
+# 工程实现顺序
+1. caffe 一半，然后需要common.hpp
+2. common.hpp 有需要cudnn， device_alternate,
+3. 写common的测试代码test_common.cpp， 而它又需要syncedmem.hpp和math_functions.hpp
+4. 

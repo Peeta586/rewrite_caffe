@@ -192,7 +192,7 @@ endif()
 ### matlab: matlab接口，./+caffe/private/caffe_.cpp编译出？编译出一个定制的目标，至于是啥类型，也许是动态库吧，玩过matlab和C/C++混编的都知道，用mex编译C/C++为.mexa文件，然后matlab调用.mexa文件，其实就是动态库
 ### docs: 文档，doxygen、jekyll都来了，以及拷贝每一个.ipynb文件。没错，
 
-# add_subdirectory(src/gtest)
+add_subdirectory(src/gtest)
 add_subdirectory(src/caffe)
 add_subdirectory(tools)
 # add_subdirectory(examples)

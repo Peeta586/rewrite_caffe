@@ -58,6 +58,7 @@ do{ \
       << caffe::cublasGetErrorString(status); \
   } while (0)
 
+//CHECK_EQ 如果等于就不打印，如果不等于就打印后面的string，这个跟python 的assert使用差不多
 #define CURAND_CHECK(condition) \
   do { \
     curandStatus_t status = condition; \

@@ -22,3 +22,38 @@ message BlobProto {
     optional int32 height = 3 [default = 0];
     optional int32 width = 4 [default = 0];
 }
+
+message PoolingParameter {
+    enum PoolMethod {
+        MAX = 0;
+        AVE = 1;
+        STOCHASTIC = 2;
+    }
+    optional PoolMethod pool = 1 [default = MAX]; // pooling method
+    // Pad, kernel size, and stride are all given as a single value for equal
+    // dimensions in height and width or as Y, X pairs.
+    optional uint32 pad = 4 [default = 0]; // padding size (equal in Y,X (H,W))
+    optional uint32 pad_h = 9 [default=0];
+    optional uint32 pad_w = 10 [default = 0];
+    optional uint32 kernel_size = 2; // The kernel size (square)
+    optional uint32 kernel_h = 5;
+    optional uint32 kernel_w = 6;
+    optional uint32 stride = 3 [default = 1];
+    optional uint32 stride_h = 7;
+    optional uint32 stride_w = 8;
+    enum Engine {
+        DEFAULT = 0;
+        CAFFE = 1;
+        CUDNN = 2;
+    }
+    optional Engine engine = 11 [default = DEFAULT];
+    // If global_pooling then it will pool over the size of the bottom by doing
+    // kernel_h = bottom->height and kernel_w = bottom->width
+    optional bool global_pooling = 12 [default = false];
+    // How to calculate the output size - using ceil (default) or floor rounding.
+    enum RoundMode {
+        CEIL = 0;
+        FLOOR = 1;
+    }
+    optional RoundMode round_mode = 13 [default = CEIL];
+}

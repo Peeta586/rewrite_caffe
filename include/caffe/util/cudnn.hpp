@@ -8,9 +8,9 @@
 #include "caffe/proto/caffe.pb.h"
 
 #define CUDNN_VERSION_MIN(major, minor, patch) \
-    (CUDA_VERSION >= (major * 1000 + minor * 100 + patch))
+    ( CUDA_VERSION >= (major * 1000 + minor * 100 + patch))
 
-#define CUDNN_CHECK(condtion) \ 
+#define CUDNN_CHECK(condition) \
     do{ \
         cudnnStatus_t status = condition; \
         CHECK_EQ(status, CUDNN_STATUS_SUCCESS) << " " \
@@ -105,11 +105,11 @@ template<> class dataType<float> {
      static float oneval, zeroval;
      static const void *one, *zero;
 };
-typename<> class dataType<double> {
+template<> class dataType<double> {
     public:
-    static const cudnnDataType_t type = CUDNN_DATA_DOUBLE;
-    static double oneval, zeroval;
-    static const void *one, *zero;
+      static const cudnnDataType_t type = CUDNN_DATA_DOUBLE;
+      static double oneval, zeroval;
+      static const void *one, *zero;
 };
 
 /**
@@ -125,12 +125,12 @@ typename<> class dataType<double> {
  *  1) 先创建描述
  *  2）再设置描述
  * cudnnSetTensor4dDescriptor（output_descriptor
- *  /*format=*CUDNN_TENSOR_NHWC,
-    /*dataType=*CUDNN_DATA_FLOAT,
-    /*batch_size=*1,
-    /*channels=*3,
-    /*image_height=*image.rows,
-    /*image_width=*image.cols）
+ *  format=*CUDNN_TENSOR_NHWC,
+    dataType=*CUDNN_DATA_FLOAT,
+    batch_size=*1,
+    channels=*3,
+    image_height=*image.rows,
+    image_width=*image.cols）
  */
 
 template <typename Dtype>
@@ -164,19 +164,19 @@ inline void setTensor4dDesc(cudnnTensorDescriptor_t* desc,
  * 对于权重数组的大小为input_channel*output_channel*kernel_size*kernel_size。
  * 在我们的例子中kernel_size为3,权重tensor描述如下
  *   cudnnSetFilter4dDescriptor(kernel_descriptor,
-                                      /*dataType=*CUDNN_DATA_FLOAT,
-                                      /*format=*CUDNN_TENSOR_NCHW,
-                                      /*out_channels=*3,
-                                      /*in_channels=*3,
-                                      /*kernel_height=*3,
-                                      /*kernel_width=*3);
+                                      dataType=*CUDNN_DATA_FLOAT,
+                                      format=*CUDNN_TENSOR_NCHW,
+                                      out_channels=*3,
+                                      in_channels=*3,
+                                      kernel_height=*3,
+                                      kernel_width=*3);
  */
 template <typename Dtype>
-inline void createFilterDesc(cudnnFilterDecriptor_t* desc, 
+inline void createFilterDesc(cudnnFilterDescriptor_t* desc, 
     int n, int c, int h, int w) {
         CUDNN_CHECK(cudnnCreateFilterDescriptor(desc));
 #if CUDNN_VERSION_MIN(5,0,0)
-    CUDNN_CHECK(cudnnSetFilter4dDescriptor(*desc, dataType<Dtype>::type, 
+  CUDNN_CHECK(cudnnSetFilter4dDescriptor(*desc, dataType<Dtype>::type, 
         CUDNN_TENSOR_NCHW, n,c,h,w));
 #else
     CUDNN_CHECK(cudnnSetFilter4dDescriptor_v4(*desc, dataType<Dtype>::type,
@@ -194,14 +194,14 @@ inline void createFilterDesc(cudnnFilterDecriptor_t* desc,
    cudnnConvolutionDescriptor_t convolution_descriptor;
    cudnnCreateConvolutionDescriptor(&convolution_descriptor);
    cudnnSetConvolution2dDescriptor(convolution_descriptor,
-                                           /*pad_height=* 1,
-                                           /*pad_width=*1,
-                                           /*vertical_stride=*1,
-                                           /*horizontal_stride=*1,
-                                           /*dilation_height=*1,
-                                           /*dilation_width=*1,
-                                           /*mode=*CUDNN_CROSS_CORRELATION,
-                                           /*computeType=*CUDNN_DATA_FLOAT));
+                                           pad_height=* 1,
+                                           pad_width=*1,
+                                           vertical_stride=*1,
+                                           horizontal_stride=*1,
+                                           dilation_height=*1,
+                                           dilation_width=*1,
+                                           mode=*CUDNN_CROSS_CORRELATION,
+                                           computeType=*CUDNN_DATA_FLOAT));
  */
 template <typename Dtype>
 inline void createConvolutionDesc(cudnnConvolutionDescriptor_t* conv){
@@ -211,10 +211,10 @@ inline void createConvolutionDesc(cudnnConvolutionDescriptor_t* conv){
 template <typename Dtype>
 inline void setConvolutionDesc(cudnnConvolutionDescriptor_t* conv,
     cudnnTensorDescriptor_t bottom, cudnnFilterDescriptor_t filter,
-    int pad_h,, int pad_w, int stride_h, int stride_w) {
+    int pad_h, int pad_w, int stride_h, int stride_w) {
 #if CUDNN_VERSION_MIN(6,0,0)
     CUDNN_CHECK(cudnnSetConvolution2dDescriptor(*conv,
-        pad_h, pad_w, stride_h, stride_w, 1, 1 CUDNN_CROSS_CORRELATION,
+        pad_h, pad_w, stride_h, stride_w, 1, 1, CUDNN_CROSS_CORRELATION,
         dataType<Dtype>::type));
 #else
     CUDNN_CHECK(cudnnSetConvolution2dDescriptor(*conv,
@@ -228,6 +228,7 @@ inline void createPoolingDesc(cudnnPoolingDescriptor_t* pool_desc,
     int h, int w, int pad_h, int pad_w, int stride_h, int stride_w) {
         switch (poolmethod)
         {
+          //PoolingParameter_PoolMethod_MAX 在caffe.proto中定义
         case PoolingParameter_PoolMethod_MAX:
             *mode = CUDNN_POOLING_MAX;
             break;
@@ -253,7 +254,7 @@ template <typename Dtype>
 inline void createActivationDescriptor(cudnnActivationDescriptor_t* activ_desc,
     cudnnActivationMode_t mode){
         CUDNN_CHECK(cudnnCreateActivationDescriptor(activ_desc));
-        CUDNN_CHECK(cudnnSetActivationDescriptor(*actv_desc, mode,
+        CUDNN_CHECK(cudnnSetActivationDescriptor(*activ_desc, mode,
                                                 CUDNN_PROPAGATE_NAN, Dtype(0)));
 }
 
