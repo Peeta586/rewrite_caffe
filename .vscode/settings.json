@@ -3,6 +3,10 @@
         "*.txt": "cmake",
         "climits": "cpp",
         "sstream": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "cstdio": "cpp",
+        "ctime": "cpp",
+        "cmath": "cpp",
+        "*.tcc": "cpp"
     }
 }

@@ -119,7 +119,7 @@ endif()
 # 这里是设置Caffe_LINK这一变量，后续链接阶段会用到。它定义在cmake/Targets.cmake中
 # 可以看到，如果是编共享库（动态库），则就叫caffe；否则，则增加一些链接器的flags：
 # -Wl是告诉编译器，后面紧跟的是链接器的flags而不是编译器的flags（现在的编译器往往是包含了调用连接器的步骤）
-# 连接器ｆｌａｇｓ:https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_node/ld_3.html
+# 连接器flags:https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_node/ld_3.html
 caffe_set_caffe_link()
 
 # 在前面已经include(cmake/Dependencies.cmake)的情况下，Dependencies.cmake中的include(cmake/Cuda.cmake)使得Cuda的设定也被载入。
@@ -146,6 +146,7 @@ caffe_warnings_disable(CMAKE_CXX_FLAGS -Wno-sign-compare -Wno-uninitialized)
 configure_file(cmake/Templates/caffe_config.h.in "${PROJECT_BINARY_DIR}/caffe_config.h")
 
 # --------- includes
+# target_include_directories(caffe ${Caffe_INCLUDE_DIRS}， 这样CMakeLists才能查找到hpp
 set(Caffe_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(Caffe_SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 include_directories(${PEOJECT_BINARY_DIR})

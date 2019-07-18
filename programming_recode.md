@@ -228,6 +228,66 @@ function(caffe_leave_only_selected_tests file_list)
 endfunction()
 ```
 
+## 10. test_caffe_main.hpp 中的typedef typename
+```C++
+typedef typename TypeParam::Dtype Dtype;
+
+如果给模板类型添加别名时，需要加上typename
+```
+如果不加这个关键字，编译器就不知道TypeParam::Dtype到底是个什么东西？可能是静态成员变量，也有可能是静态成员函数，也有可能是内部类。
+加上这个关键字等于手动告诉编译器：TypeParam::Dtype就是一个类型。
+
+也就是说 模板类型在实例化之前，编译器并不知道
+typedef创建了存在类型的别名，而typename告诉编译器TypeParam::Dtype是一个类型而不是一个成员。
+
+## 11. 整个工程是怎么执行的呢？
+- 先给caffe 目标，所需要的所有源代码，srcs，然后这样在生成该target时，会将所有的srcs中的.cpp, .cu, 进行编译，这些文件中include的头文件会被找到，然后作为这些源文件的依赖进行编译，这个会自动生成makefile语法中cxxxx.o:xx.hpp,xxx.h的格式
+- target_link_libraries给出所有需要的库
+- 给出所有需要的 .hpp, .h 文件
+- target_compile_definitions 给出一些定义这个是用来控制程序中像'#ifdef CPU_ONLY'这样的宏判断语句的； 如下面配置，${Caffe_DEFINITIONS}包含-DCPU_ONLY，-DUSE_MKL等， 这样在编译程序的时候，或根据程序中#ifndef CPU_ONLY 来控制编译哪些代码？
+
+```C++
+# Caffe_DEFINITIONS变量设置
+set(Caffe_DEFINITIONS "")
+cmake/Dependencies.cmake:63:  list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_LMDB)
+cmake/Dependencies.cmake:65:    list(APPEND Caffe_DEFINITIONS PRIVATE -DALLOW_LMDB_NOLOCK)
+cmake/Dependencies.cmake:74:  list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_LEVELDB)
+cmake/Dependencies.cmake:93:  list(APPEND Caffe_DEFINITIONS PUBLIC -DCPU_ONLY)
+cmake/Dependencies.cmake:112:  list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_OPENCV)
+cmake/Dependencies.cmake:132:    list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_MKL)
+cmake/Dependencies.cmake:141:      list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_ACCELERATE)
+cmake/Dependencies.cmake:185:      list(APPEND Caffe_DEFINITIONS PRIVATE -DWITH_PYTHON_LAYER)
+cmake/ConfigGen.cmake:36:    list(APPEND Caffe_DEFINITIONS -DUSE_HDF5)
+cmake/Cuda.cmake:257:    list(APPEND Caffe_DEFINITIONS PUBLIC -DUSE_CUDNN)
+```
+
+- set_target_properties() 设置一些属性
+
+
+```C++
+# 主要的工程编译程序
+# 因为一些库和anaconda3/libs冲突了，它选的是anaconda3里面的库
+add_library(caffe ${srcs})
+caffe_default_properties(caffe)
+message(STATUS "add lib caffe Caffe_LINKER_LIBS: ${Caffe_LINKER_LIBS} ")
+target_link_libraries(caffe ${Caffe_LINKER_LIBS})
+target_include_directories(caffe ${Caffe_INCLUDE_DIRS}
+                                 PUBLIC
+                                 $<BUILD_INTERFACE:${Caffe_INCLUDE_DIR}>
+                                 $<INSTALL_INTERFACE:include>)
+message(STATUS "caffe definition: -------- ${Caffe_DEFINITIONS}, ${Caffe_COMPILE_OPTIONS}")
+target_compile_definitions(caffe ${Caffe_DEFINITIONS})
+if(Caffe_COMPILE_OPTIONS)
+  message(STATUS "add lib caffe Caffe_COMPILE_OPTIONS:  ${Caffe_COMPILE_OPTIONS}")
+  target_compile_options(caffe ${Caffe_COMPILE_OPTIONS})
+endif()
+set_target_properties(caffe PROPERTIES
+    VERSION   ${CAFFE_TARGET_VERSION}
+    SOVERSION ${CAFFE_TARGET_SOVERSION}
+    )
+```
+
+
 # 错误记录
 
 ## 1. proto编译错误
@@ -271,4 +331,4 @@ src/caffe/CMakeFiles/caffeproto.dir/__/__/include/caffe/proto/caffe.pb.cc.o: inc
 1. caffe 一半，然后需要common.hpp
 2. common.hpp 有需要cudnn， device_alternate,
 3. 写common的测试代码test_common.cpp， 而它又需要syncedmem.hpp和math_functions.hpp
-4. 
+4.

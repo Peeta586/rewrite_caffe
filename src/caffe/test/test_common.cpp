@@ -48,5 +48,6 @@ namespace caffe {
         Caffe::set_mode(Caffe::GPU);
         EXPECT_EQ(Caffe::mode(), Caffe::GPU);
     }
+    
 } //namespace caffe
 

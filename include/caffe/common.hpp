@@ -134,6 +134,9 @@ class Caffe {
 
         enum Brew {CPU, GPU};
 
+    // 这个类隐藏了 boost和CUDA随机数的生成，
+    // 为什么里面包了一个Generator，我觉得应该是为了可读性，这样RNG表示随机数生成，而Generator表示里面的生成器，具有很好可读性
+    // 要不直接用caffe:rng_t会很没有可读性
     // this random number generator facade hides boost and cuda rng
     // implementation from one another (for cross-platform compatibility)
     //explicit关键字的作用就是防止类构造函数的隐式自动转换. （也就是如果构造函数参数个数类型不同个数相同，那么可能会隐式自动转换） explicit防止这种转换

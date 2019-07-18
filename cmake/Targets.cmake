@@ -71,7 +71,7 @@ function(caffe_pickup_caffe_sources root)
   # caffe_source_group("Source\\Util"   GLOB "${root}/src/caffe/util/*.cpp")
   # caffe_source_group("Source\\Layers" GLOB "${root}/src/caffe/layers/*.cpp")
   # caffe_source_group("Source\\Cuda"   GLOB "${root}/src/caffe/layers/*.cu")
-  # caffe_source_group("Source\\Cuda"   GLOB "${root}/src/caffe/util/*.cu")
+  caffe_source_group("Source\\Cuda"   GLOB "${root}/src/caffe/util/*.cu")
   caffe_source_group("Source\\Proto"  GLOB "${root}/src/caffe/proto/*.proto")
 
   # source groups for test target

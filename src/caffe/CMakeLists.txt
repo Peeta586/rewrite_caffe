@@ -21,8 +21,11 @@ if(HAVE_CUDA)
   list(APPEND srcs ${cuda_objs} ${cuda})
 endif()
 
+message(STATUS "caffe camkelist src: ${srcs}")
+# 因为一些库和anaconda3/libs冲突了，它选的是anaconda3里面的库
 add_library(caffe ${srcs})
 caffe_default_properties(caffe)
+message(STATUS "add lib caffe Caffe_LINKER_LIBS: ${Caffe_LINKER_LIBS} ")
 target_link_libraries(caffe ${Caffe_LINKER_LIBS})
 target_include_directories(caffe ${Caffe_INCLUDE_DIRS}
                                  PUBLIC
@@ -31,6 +34,7 @@ target_include_directories(caffe ${Caffe_INCLUDE_DIRS}
 message(STATUS "caffe definition: -------- ${Caffe_DEFINITIONS}, ${Caffe_COMPILE_OPTIONS}")
 target_compile_definitions(caffe ${Caffe_DEFINITIONS})
 if(Caffe_COMPILE_OPTIONS)
+  message(STATUS "add lib caffe Caffe_COMPILE_OPTIONS:  ${Caffe_COMPILE_OPTIONS}")
   target_compile_options(caffe ${Caffe_COMPILE_OPTIONS})
 endif()
 set_target_properties(caffe PROPERTIES
