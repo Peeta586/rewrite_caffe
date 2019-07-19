@@ -17,6 +17,16 @@ namespace caffe {
 
     inline void CaffeMallocHost(void** ptr, size_t size, bool* use_cuda){
     #ifndef CPU_ONLY
+    /**
+     * 使用分页锁定内存，分页锁定内存和显存之间的拷贝速度大约是6GB/s，普通的分页内存和GPU间的速度大约是3GB/s，
+     * （另外：GPU内存间速度是30G,CPU间内存速度是10GB/s），但是这种方法会带来额外的cpu内存间的拷贝时间
+     * 调用cudaMallocHost得到的pinned的内存, 不是显存
+     * cudaMalloc是直接分配显存空间，
+     * malloc 则是直接分配内存，但不是pinned
+     * 建议针对cudaMemcpy()调用中的源内存或者目标内存,才使用页锁定内存,
+     * 并且在不在使用他们的时候立即释放,而不是在应用程序关闭的时候才释放.我们使用下面的测试实例，
+     * 因为如果ptr是GPU的，那么我们要分配内存的空间，那么一定是要传输到这个内存空间的，所以要分配pinned memory
+     */
         if (Caffe::mode() == Caffe::GPU){
             CUDA_CHECK(cudaMallocHost(ptr, size));
             *use_cuda = true;
@@ -87,8 +97,8 @@ namespace caffe {
 
             void to_cpu();
             void to_gpu();
-            void * cpu_str_;
-            void * gpu_str_;
+            void * cpu_ptr_;
+            void * gpu_ptr_;
             size_t size_;
             SyncedHead head_;
             bool own_cpu_data_;

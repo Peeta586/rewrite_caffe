@@ -12,7 +12,10 @@
 
 namespace caffe {
 
-
+    // ------------------------------------------------- CPU
+    inline void caffe_memset(const size_t n, const int alpha, void* x){
+        memset(x, alpha, n);  // NOLINT(caffe/alt_fn)
+    }
     //----------------------------------- Random
     unsigned int caffe_rng_rand();
     template <typename Dtype>
@@ -31,11 +34,24 @@ namespace caffe {
     template <typename Dtype>
     void caffe_rng_bernoulli(const int n, const Dtype p, unsigned int* r);
 
-#ifndef CPU_ONLY
+    // ------------------------------------------------------ GPU
+#ifndef CPU_ONLY // GPU
     template <typename Dtype>
     void caffe_gpu_scal(const int n, const Dtype alpha, Dtype *x);
     template <typename Dtype>
     void caffe_gpu_add_scalar(const int n, const Dtype alpha, Dtype* x);
+
+    inline void caffe_gpu_memset(const size_t n, const int alpha, void* x){
+    #ifndef CPU_ONLY
+        CUDA_CHECK(cudaMemset(x, alpha, n)); // NOLINT(caffe/alt_fn)
+    #else
+        NO_GPU;
+    #endif
+    }
+
+    // x--->y
+    void caffe_gpu_memcpy(const size_t n, const void* x, const void* y);
+
 
 
 #ifndef CPU_ONLY
