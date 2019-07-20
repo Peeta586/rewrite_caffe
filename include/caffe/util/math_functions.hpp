@@ -52,8 +52,6 @@ namespace caffe {
     // x--->y
     void caffe_gpu_memcpy(const size_t n, const void* x, const void* y);
 
-
-
 #ifndef CPU_ONLY
     template <typename Dtype>
     void caffe_gpu_scal(const int n, const Dtype alpha, Dtype *x, cudaStream_t str);

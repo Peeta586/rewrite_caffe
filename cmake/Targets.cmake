@@ -68,7 +68,7 @@ function(caffe_pickup_caffe_sources root)
   caffe_source_group("Include\\Util"  GLOB "${root}/include/caffe/util/*.h*")
   caffe_source_group("Include"        GLOB "${PROJECT_BINARY_DIR}/caffe_config.h*")
   caffe_source_group("Source"         GLOB "${root}/src/caffe/*.cpp")
-  # caffe_source_group("Source\\Util"   GLOB "${root}/src/caffe/util/*.cpp")
+  caffe_source_group("Source\\Util"   GLOB "${root}/src/caffe/util/*.cpp")
   # caffe_source_group("Source\\Layers" GLOB "${root}/src/caffe/layers/*.cpp")
   # caffe_source_group("Source\\Cuda"   GLOB "${root}/src/caffe/layers/*.cu")
   caffe_source_group("Source\\Cuda"   GLOB "${root}/src/caffe/util/*.cu")
@@ -94,6 +94,7 @@ function(caffe_pickup_caffe_sources root)
   # collect cuda files
   # file(GLOB    test_cuda ${root}/src/caffe/test/test_*.cu)
   file(GLOB_RECURSE cuda ${root}/src/caffe/*.cu)
+  message(STATUS "=---------------***********--- ${cuda}")
   # list(REMOVE_ITEM  cuda ${test_cuda})
 
   # add proto to make them editable in IDEs too

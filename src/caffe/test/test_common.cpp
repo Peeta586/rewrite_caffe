@@ -44,7 +44,7 @@ namespace caffe {
     //   }
     TEST_F(CommonTest, TestBrewMode) {
         Caffe::set_mode(Caffe::CPU);
-        EXPECT_EQ(Caffe::mode(), CAFFE::CPU);
+        EXPECT_EQ(Caffe::mode(), Caffe::CPU);
         Caffe::set_mode(Caffe::GPU);
         EXPECT_EQ(Caffe::mode(), Caffe::GPU);
     }

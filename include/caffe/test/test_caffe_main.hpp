@@ -58,7 +58,7 @@ namespace caffe {
         struct GPUDevice {
             typedef TypeParam Dtype;
             static const Caffe::Brew device = Caffe::GPU;
-        }
+        };
 
         template <typename Dtype>
         class GPUDeviceTest : public MultiDeviceTest<GPUDevice<Dtype> > {

@@ -21,6 +21,8 @@ if(HAVE_CUDA)
   list(APPEND srcs ${cuda_objs} ${cuda})
 endif()
 
+message(STATUS "${HAVE_CUDA} --------**&&&&&&&&&&&&%%%%%-cuda_objs ${cuda_objs}")
+
 message(STATUS "caffe camkelist src: ${srcs}")
 # 因为一些库和anaconda3/libs冲突了，它选的是anaconda3里面的库
 add_library(caffe ${srcs})
@@ -43,7 +45,7 @@ set_target_properties(caffe PROPERTIES
     )
 
 # ---[ Tests
-add_subdirectory(test)
+  add_subdirectory(test)
 
 # ---[ Install
 install(DIRECTORY ${Caffe_INCLUDE_DIR}/caffe DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

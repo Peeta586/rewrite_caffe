@@ -4,7 +4,7 @@
 
 namespace caffe {
     SyncedMemory::SyncedMemory(): cpu_ptr_(NULL),
-        gpu_ptr(NULL),size_(0),head_(UNINITIALIZED),
+        gpu_ptr_(NULL),size_(0),head_(UNINITIALIZED),
         own_cpu_data_(false), cpu_malloc_use_cuda_(false), own_gpu_data_(false){
         
     #ifndef CPU_ONLY
@@ -15,8 +15,8 @@ namespace caffe {
     }
 
     SyncedMemory::SyncedMemory(size_t size):
-        :cpu_ptr_(NULL), gpu_ptr_(NULL), size_(size), head_(UNINITIALIZED),
-        own_cpu_data_(false), own_gpu_data_(false), cpu_malloc_use_cuda_(false) {
+        cpu_ptr_(NULL), gpu_ptr_(NULL), size_(size), head_(UNINITIALIZED),
+        own_cpu_data_(false), cpu_malloc_use_cuda_(false),own_gpu_data_(false) {
     #ifndef CPU_ONLY
     #ifdef DEBUG
         CUDA_CHECK(cudaGetDevice(&device_));
@@ -44,7 +44,8 @@ namespace caffe {
         {
         case UNINITIALIZED:
         // 如果数据刚创建状态，则CPU上开启空间
-            CaffeMallocHost(&cpu_ptr, size_, &cpu_malloc_use_cuda_);
+        // 注意，内存的分配是按照字节来计数的，size_是字节的大小
+            CaffeMallocHost(&cpu_ptr_, size_, &cpu_malloc_use_cuda_);
             caffe_memset(size_, 0, cpu_ptr_);
             head_ = HEAD_AT_CPU;
             own_cpu_data_ = true;
@@ -53,7 +54,7 @@ namespace caffe {
         // 如果数据在GPU上， 则设置head为SYNCED， 将GPU的数据拷到CPU指针上
         #ifndef CPU_ONLY
             if (cpu_ptr_ == NULL){
-                CaffeMallocHost(&cpu_str_, size_, &cpu_malloc_use_cuda_);
+                CaffeMallocHost(&cpu_ptr_, size_, &cpu_malloc_use_cuda_);
                 own_cpu_data_ = true;
             }
             caffe_gpu_memcpy(size_, gpu_ptr_, cpu_ptr_);
@@ -176,7 +177,6 @@ namespace caffe {
             own_gpu_data_ = true;
         }
         const cudaMemcpyKind put = cudaMemcpyHostToDevice;
-        cudaMemcpyAsync
         CUDA_CHECK(cudaMemcpyAsync(gpu_ptr_, cpu_ptr_, size_, put, stream));
         // assume caller will synchronize on the stream before use
         head_ = SYNCED;

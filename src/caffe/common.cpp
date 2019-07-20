@@ -79,17 +79,17 @@ namespace caffe {
         // RNG seed
         Get().random_generator_.reset(new RNG(seed));
     }
-    void Caffe::setDevice(const int device_id) {
+    void Caffe::SetDevice(const int device_id) {
         NO_GPU;
     }
-    void Caffe::DeviceQuery(const int device_id) {
+    void Caffe::DeviceQuery() {
         NO_GPU;
     }
     bool Caffe::CheckDevice(const int device_id){
         NO_GPU;
         return false;
     }
-    bool Caffe::FindDevice(const int start_id){
+    int Caffe::FindDevice(const int start_id){
         NO_GPU;
         return -1;
     }
@@ -108,7 +108,7 @@ namespace caffe {
     };
     // 实现RNG 类的一些函数
     Caffe::RNG::RNG():generator_(new Generator()){ }
-    Caffe::RNG::RNG(unsigned int seed):generator_(new Generaotor(seed)) { }
+    Caffe::RNG::RNG(unsigned int seed):generator_(new Generator(seed)) { }
     Caffe::RNG& Caffe::RNG::operator=(const RNG& other){
         generator_ = other.generator_;
         return *this;

@@ -44,12 +44,12 @@ void classname<Dtype>::funcname##_##gpu(const vector<Blob<Dtype>*>& bottom, \
 
 // cuda: various checks for different functions calls
 
+/*code block avoids redefinition of cudaError_t error */ 
 #define CUDA_CHECK(condition) \
-/*code block avoids redefinition of cudaError_t error */ \
-do{ \
-    cudaError_t error = condition; \
-    CHECK_EQ(error, cudaSuccess) << " "<<cudaGetErrorString(error); \
-} while (0)
+  do{ \
+      cudaError_t error = condition; \
+      CHECK_EQ(error, cudaSuccess) << " " << cudaGetErrorString(error); \
+  } while (0)
 
 #define CUBLAS_CHECK(condition) \
   do { \

@@ -28,6 +28,8 @@ namespace caffe {
      * 因为如果ptr是GPU的，那么我们要分配内存的空间，那么一定是要传输到这个内存空间的，所以要分配pinned memory
      * 注意，所谓的Pinned Memory都是在Host端的，而不是Device端。
      * 用use_cuda 指示当前cpu数据是用于GPU的pinned memory（cudaMallocHost申请的）还是普通的memory(malloc申请的)；
+     * 
+     * 所有的其他类都使用Caffe类，因此，再开始编译的时候会设置Caffe::mode等一些参数的
      */
         if (Caffe::mode() == Caffe::GPU){
             CUDA_CHECK(cudaMallocHost(ptr, size));

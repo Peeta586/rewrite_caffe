@@ -31,6 +31,7 @@ else()
 endif()
 
 # ---[ Adding test target
+message("==========test target ${test_srcs}")
 add_executable(${the_target} EXCLUDE_FROM_ALL ${test_srcs})
 # message(STATUS "Caffe_LINK: ${Caffe_LINK}")
 # Caffe_LINK is caffe, 也就是测试的函数都是再caffe中呢
