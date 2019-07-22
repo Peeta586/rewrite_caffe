@@ -50,7 +50,7 @@ namespace caffe {
     }
 
     // x--->y
-    void caffe_gpu_memcpy(const size_t n, const void* x, const void* y);
+    void caffe_gpu_memcpy(const size_t n, const void* x, void* y);
 
 #ifndef CPU_ONLY
     template <typename Dtype>

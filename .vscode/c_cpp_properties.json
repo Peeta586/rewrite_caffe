@@ -3,14 +3,17 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "/usr/include/**",
+                "/usr/local/cuda/include/**",
+                "/usr/local/include/**",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/include/caffe/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
             "cppStandard": "c++11",
-            "intelliSenseMode": "gcc-x64",
-            "configurationProvider": "vector-of-bool.cmake-tools"
+            "intelliSenseMode": "gcc-x64"
         }
     ],
     "version": 4

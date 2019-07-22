@@ -6,7 +6,6 @@
 # 然后这个变量存储再CMakeCache.txt上
 set(BUILD_only_tests "" CACHE STRING "Blank or comma-separated list of files to build without 'test_' prefix and extension")
 # caffe_leave_only_selected_tests (<filelist_variable> <selected_list>)
-# 
 caffe_leave_only_selected_tests(test_srcs ${BUILD_only_tests})
 caffe_leave_only_selected_tests(test_cuda ${BUILD_only_tests})
 
@@ -33,7 +32,7 @@ endif()
 # ---[ Adding test target
 message("==========test target ${test_srcs}")
 add_executable(${the_target} EXCLUDE_FROM_ALL ${test_srcs})
-# message(STATUS "Caffe_LINK: ${Caffe_LINK}")
+message(STATUS "Caffe_LINK: ${Caffe_LINK}")
 # Caffe_LINK is caffe, 也就是测试的函数都是再caffe中呢
 target_link_libraries(${the_target} gtest ${Caffe_LINK})
 caffe_default_properties(${the_target})

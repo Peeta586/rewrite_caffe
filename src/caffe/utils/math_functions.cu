@@ -37,7 +37,7 @@ namespace caffe {
         add_scalar_kernel<double><<<CAFFE_GET_BLOCKS(n), CAFFE_CUDA_NUM_THREADS>>>(n, alpha, y);
     }
 
-    void caffe_gpu_memcpy(const size_t n, const void* x, void*y){
+    void caffe_gpu_memcpy(const size_t n, const void* x, void* y){
         if (x != y){
             // x ---> y
             CUDA_CHECK(cudaMemcpy(y, x, n, cudaMemcpyDefault)); // NOLINT(caffe/alt_fn)

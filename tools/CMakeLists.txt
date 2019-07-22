@@ -25,6 +25,7 @@ foreach(source ${srcs})
     endif()
 
     # target
+    message(STATUS "----add exec caffe----****: ${source}, ${Caffe_LINK}")
     add_executable(${name} ${source})
     target_link_libraries(${name} ${Caffe_LINK})
     #function(caffe_default_properties target)

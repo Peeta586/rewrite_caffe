@@ -33,7 +33,10 @@ int main(int argc, char** argv){
     cout << "Current device id: " << device << endl;
     cudaGetDeviceProperties(&CAFFE_TEST_CUDA_PROP, device);
     cout << "Current device name: " << CAFFE_TEST_CUDA_PROP.name << endl;
+
 #endif // !CPU_ONLY
+
     // invoke the test
+    // 测试所有的用例
     return RUN_ALL_TESTS();
 }

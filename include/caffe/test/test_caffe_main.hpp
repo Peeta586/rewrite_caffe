@@ -28,6 +28,14 @@ int main(int argc, char** argv);
 // 所有测试都继承于gtest::testing::Test
 // 设备测试， CPU, GPU
 namespace caffe {
+
+    /***
+     * gtest还提供了应付各种不同类型的数据时的方案，
+     * 以及参数化类型的方案。我个人感觉这个方案有些复杂。
+     * 首先要了解一下类型化测试，就用gtest里的例子了。
+     *  这是gtest用于验证类型参数的方式， 这是类型参数化， 这样就可以用传入参数的方式
+     * 验证不同类型的参数是否正确
+     */
     template <typename TypeParam>
     class MultiDeviceTest : public ::testing::Test {
         public:
@@ -39,6 +47,7 @@ namespace caffe {
                 virtual ~MultiDeviceTest() {}
     };
 
+    // 这参数list用于测试类型
     typedef ::testing::Types<float, double> TestDtypes;
 
     template <typename TypeParam>
@@ -59,7 +68,26 @@ namespace caffe {
             typedef TypeParam Dtype;
             static const Caffe::Brew device = Caffe::GPU;
         };
+        // 设置一个参数类型测试的类， 然后
+        /***
+         * 1）定义case
+         * TYPED_TEST_CASE_P(FooTest);
+            接着又是一个新的宏TYPED_TEST_P类完成我们的测试案例：
+            2） 生成多个用例
+            TYPED_TEST_P(FooTest, DoesBlah) {
+            // Inside a test, refer to TypeParam to get the type parameter.
+            TypeParam n = 0;
+            
+            }
+            TYPED_TEST_P(FooTest, HasPropertyA) {  }
 
+            3） 注册case 和用例
+             REGISTER_TYPED_TEST_CASE_P(FooTest, DoesBlah, HasPropertyA);
+             用前面生命的类型测试TestDtypes
+             4) 实例化case和用例
+             INSTANTIATE_TYPED_TEST_CASE_P(My, FooTest, TestDtypes);
+         * 
+         */
         template <typename Dtype>
         class GPUDeviceTest : public MultiDeviceTest<GPUDevice<Dtype> > {
         };

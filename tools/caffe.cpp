@@ -15,12 +15,12 @@ namespace bp = boost::python;
 #include "caffe/caffe.hpp"
 //#include "caffe/util/signal_handler.h"
 
-// using caffe::Blob;
-// using caffe::Caffe;
+//using caffe::Blob;
+using caffe::Caffe;
 // using caffe::Net;
 // using caffe::Layer;
 // using caffe::Solver;
-// using caffe::shared_ptr;
+//using caffe::shared_ptr;
 // using caffe::string;
 // using caffe::Timer;
 // using caffe::vector;
@@ -64,8 +64,9 @@ typedef int (*BrewFunction)(); // using BrewFunction = int (*)();
 
 
 
-int main(int argc, char ** argv){
-
+int main(int argc, char** argv){
+    ::gflags::SetVersionString(AS_STRING(CAFFE_VERSION));
+    caffe::GlobalInit(&argc, &argv);
     return 0;
 }
 

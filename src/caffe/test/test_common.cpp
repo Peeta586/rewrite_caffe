@@ -1,13 +1,35 @@
 #include "gtest/gtest.h"
 
 #include "caffe/common.hpp"
-// #include "caffe/syncedmen.hpp"
-// #include "caffe/util/math_functions.hpp"
+#include "caffe/syncedmem.hpp"
+#include "caffe/util/math_functions.hpp"
 
 #include "caffe/test/test_caffe_main.hpp"
 
 namespace caffe {
-    class CommonTest: public ::testing::Test{};
+    class CommonTest: public ::testing::Test{
+        public:
+            // Sets up the stuff shared by all tests in this test case.
+            //
+            // Google Test will call Foo::SetUpTestCase() before running the first
+            // test in test case Foo.  Hence a sub-class can define its own
+            // SetUpTestCase() method to shadow the one defined in the super
+            // class.
+            static void SetUpTestCase() {
+                std::cout<<"We begin to test Common file--------------------------------"<<std::endl;
+            }
+
+            // Tears down the stuff shared by all tests in this test case.
+            //
+            // Google Test will call Foo::TearDownTestCase() after running the last
+            // test in test case Foo.  Hence a sub-class can define its own
+            // TearDownTestCase() method to shadow the one defined in the super
+            // class.
+            static void TearDownTestCase() {
+                std::cout<<"Finish to test Common file--------------------------------"<<std::endl;
+            }
+
+    };
 
     #ifndef CPU_ONLY
         TEST_F(CommonTest, TestCublasHandlerGPU) {
@@ -48,6 +70,48 @@ namespace caffe {
         Caffe::set_mode(Caffe::GPU);
         EXPECT_EQ(Caffe::mode(), Caffe::GPU);
     }
+
+    TEST_F(CommonTest, TestRandSeedCPU){
+        SyncedMemory data_a(10 * sizeof(int));
+        SyncedMemory data_b(10 * sizeof(int));
+
+        Caffe::set_random_seed(1701);
+        // 初始化
+        caffe_rng_bernoulli(10, 0.5, static_cast<int*>(data_a.mutable_cpu_data()));
+
+        Caffe::set_random_seed(1701);
+        caffe_rng_bernoulli(10, 0.5, static_cast<int*>(data_b.mutable_cpu_data()));
+        
+        for(int i =0; i< 10; ++i){
+            EXPECT_EQ(static_cast<const int*>(data_a.cpu_data())[i],
+                static_cast<const int*>(data_b.cpu_data())[i]);
+        }
+
+    }
+
+#ifndef CPU_ONLY
+    TEST_F(CommonTest, TestRandSeedGPU){
+        SyncedMemory data_a(10 * sizeof(unsigned int));
+        SyncedMemory data_b(10 * sizeof(unsigned int));
+
+        Caffe::set_random_seed(1701);
+        // 产生10个随机数， 由curand_generator产生
+        CURAND_CHECK(curandGenerate(Caffe::curand_generator(), 
+            static_cast<unsigned int*>(data_a.mutable_gpu_data()), 10));
+        
+        Caffe::set_random_seed(1701);
+        CURAND_CHECK(curandGenerate(Caffe::curand_generator(),
+            static_cast<unsigned int*>(data_b.mutable_gpu_data()), 10));
+        
+        for(int i = 0; i < 10; i++){
+            EXPECT_EQ(((const unsigned int*)(data_a.cpu_data()))[i], 
+            ((const unsigned int*)(data_b.cpu_data()))[i]);
+        }
+    }
+#endif
+
+
+
     
 } //namespace caffe
 

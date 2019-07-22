@@ -309,6 +309,53 @@ malloc()分配的标准的,可分页的主机内存(上面有解释到),而cudaH
 ## 13. SyncedMemory的设计很巧妙
 有四个状态， 用to_cpu, to_gpu进行状态之间的转移判断； 利用cpu_data,mutable_cpu_data,gpu_data,mutable_gpu_data进行不同需求的数据读取； 也就是一个任务要分离出需要的接口函数，以及确定好那些是内部的固定的功能函数如to_cpu, to_gpu；
 
+## 14. 在GPU模式下，make runtest caffe_gpu_memcpy无法被找到定义undefine reference
+可能链接库的顺序不对， 而且添加了caffe::GlobalInit(&argc,&argv) make就出该错误;
+真正原因： 是.hpp中的声明，和.cu中的定义不一样导致的
+
+```C++
+# declare in math_functions.hpp
+void caffe_gpu_memcpy(const size_t n, const void* x, const void* y); // wrong
+// 应该将 第二个const去掉
+void caffe_gpu_memcpy(const size_t n, const void* x, void* y);
+
+# define in math_functions.cu
+void caffe_gpu_memcpy(const size_t n, const void* x, void* y){
+        if (x != y){
+            // x ---> y
+            CUDA_CHECK(cudaMemcpy(y, x, n, cudaMemcpyDefault)); // NOLINT(caffe/alt_fn)
+        }
+    }
+
+```
+所以以后，如果出现这种提示，先找书写格式上的错误
+
+## 15.Vscode 出现#include errors detected. Please update your includePath. IntelliSense
+shift+ctrl+p, 然后输入C/C++ 然后找C/C++ configure file (JSON); 然后配置如下
+
+```
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+            # 一些.h 如driver_types.h 无法被加入，但是能跳转过去； 需要添加该文件所在路径，因此添加了一下可能会需要的路径
+                "/usr/include/**",
+                "/usr/local/cuda/include/**",
+                "/usr/local/include/**",
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}
+```
+
 
 
 # 错误记录

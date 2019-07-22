@@ -112,7 +112,7 @@ namespace caffe {
             EXPECT_EQ((static_cast<const char*>(cpu_data))[i], 2);
         }
         EXPECT_EQ(mem.head(), SyncedMemory::SYNCED);
-}
+    }
 
 #endif
 

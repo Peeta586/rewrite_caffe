@@ -46,7 +46,7 @@ function(caffe_generate_export_configs)
 
   # Add targets to the build-tree export set
   message(STATUS "${PROJECT_BINARY_DIR}/CaffeTargets.cmake")
-  #export(TARGETS caffe caffeproto FILE "${PROJECT_BINARY_DIR}/CaffeTargets.cmake")
+  export(TARGETS caffe caffeproto FILE "${PROJECT_BINARY_DIR}/CaffeTargets.cmake")
   export(PACKAGE Caffe)
 
   # ---[ Configure install-tree CaffeConfig.cmake file ]---
@@ -55,7 +55,8 @@ function(caffe_generate_export_configs)
 
   # Install the CaffeConfig.cmake and export set to use with install-tree
   install(FILES "${PROJECT_BINARY_DIR}/cmake/CaffeConfig.cmake" DESTINATION ${install_cmake_suffix})
-  # install(EXPORT CaffeTargets DESTINATION ${install_cmake_suffix})
+  message(STATUS "install_cmake_suffix-- ${install_cmake_suffix}")
+  install(EXPORT CaffeTargets DESTINATION ${install_cmake_suffix})
 
   # ---[ Configure and install version file ]---
 
