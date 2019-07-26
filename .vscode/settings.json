@@ -51,7 +51,8 @@
         "type_traits": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "algorithm": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled"
 }

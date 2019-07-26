@@ -15,7 +15,7 @@ namespace bp = boost::python;
 #include "caffe/caffe.hpp"
 //#include "caffe/util/signal_handler.h"
 
-//using caffe::Blob;
+using caffe::Blob;
 using caffe::Caffe;
 // using caffe::Net;
 // using caffe::Layer;

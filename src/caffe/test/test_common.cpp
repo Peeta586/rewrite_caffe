@@ -32,6 +32,10 @@ namespace caffe {
     };
 
     #ifndef CPU_ONLY
+        /**
+         * 注意， Caffe 在实现函数定义的过程中，调用了Get， 那么，它已经实现了实例化，
+         * 因此直接用Caffe::cublas_handle等成员变量即是实例化的
+         */
         TEST_F(CommonTest, TestCublasHandlerGPU) {
             int cuda_device_id;
             CUDA_CHECK(cudaGetDevice(&cuda_device_id));

@@ -4,6 +4,7 @@
 #ifndef CAFFE_CAFFE_HPP_
 #define CAFFE_CAFFE_HPP_
 
+#include "caffe/blob.hpp"
 #include "caffe/common.hpp"
 #include "caffe/proto/caffe.pb.h"
 

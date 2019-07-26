@@ -310,6 +310,7 @@ malloc()分配的标准的,可分页的主机内存(上面有解释到),而cudaH
 有四个状态， 用to_cpu, to_gpu进行状态之间的转移判断； 利用cpu_data,mutable_cpu_data,gpu_data,mutable_gpu_data进行不同需求的数据读取； 也就是一个任务要分离出需要的接口函数，以及确定好那些是内部的固定的功能函数如to_cpu, to_gpu；
 
 ## 14. 在GPU模式下，make runtest caffe_gpu_memcpy无法被找到定义undefine reference
+
 可能链接库的顺序不对， 而且添加了caffe::GlobalInit(&argc,&argv) make就出该错误;
 真正原因： 是.hpp中的声明，和.cu中的定义不一样导致的
 
@@ -329,6 +330,46 @@ void caffe_gpu_memcpy(const size_t n, const void* x, void* y){
 
 ```
 所以以后，如果出现这种提示，先找书写格式上的错误
+
+### 14.1 其他undefine reference情况-C/C++混合编程导致的
+因为在cblas.h中的实现都是c编译器编译的，所以要在cblas.h 外加上extern "C" {};
+```C++
+extern "C" {
+  #include <cblas.h>
+}
+```
+### 14.2 模板实例化和特例化的混了，导致undefine 错误
+实例化：
+```C++
+template <typename Dtype>
+Dtype caffe_cpu_dot(const int n, const Dtype* x, const Dtype* y) {
+  return caffe_cpu_strided_dot(n, x, 1, y, 1);
+}
+
+template
+float caffe_cpu_dot<float>(const int n, const float* x, const float* y);
+
+template
+double caffe_cpu_dot<double>(const int n, const double* x, const double* y);
+```
+而错误是把实例化的方式写成特例化如添加了<> 符号
+特例化
+```C++
+template <typename Dtype>
+Dtype caffe_cpu_dot(const int n, const Dtype* x, const Dtype* y) {
+  return caffe_cpu_strided_dot(n, x, 1, y, 1);
+}
+template <>
+float caffe_cpu_dot<float>(const int n, const float* x, const float* y);
+
+template <>
+double caffe_cpu_dot<double>(const int n, const double* x, const double* y);
+
+```
+这是错误的，因为特例化需要定义的也就是需要具体实现的。而这直接加了一个分号“;”,所以没有它的实现，因此报出
+undefine reference错误。
+
+
 
 ## 15.Vscode 出现#include errors detected. Please update your includePath. IntelliSense
 shift+ctrl+p, 然后输入C/C++ 然后找C/C++ configure file (JSON); 然后配置如下

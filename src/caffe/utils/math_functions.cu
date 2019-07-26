@@ -113,5 +113,38 @@ namespace caffe {
         CURAND_CHECK(curandGenerateNormalDouble(Caffe::curand_generator(), r, n, mu, sigma));
     }
 
+    // axpy
+    template <>
+    void caffe_gpu_axpy<float>(const int n, const float alpha, const float* x, float*y){
+        CUBLAS_CHECK(cublasSaxpy(Caffe::cublas_handle(), n, &alpha, x, 1, y, 1));
+    }
+
+    template <>
+    void caffe_gpu_axpy<double>(const int n, const double alpha, const double* x, double*y){
+        CUBLAS_CHECK(cublasDaxpy(Caffe::cublas_handle(), n, &alpha, x, 1, y, 1));
+    }
+
+    // asum
+    template <>
+    void caffe_gpu_asum<float>(const int n, const float* x, float* y){
+        CUBLAS_CHECK(cublasSasum(Caffe::cublas_handle(), n,x,1,y));
+    }
+
+    template <>
+    void caffe_gpu_asum<double>(const int n, const double* x, double* y){
+        CUBLAS_CHECK(cublasDasum(Caffe::cublas_handle(), n,x,1,y));
+    }
+
+    template <>
+    void caffe_gpu_dot<float>(const int n, const float*x, const float *y, float* z){
+        CUBLAS_CHECK(cublasSdot(Caffe::cublas_handle(), n, x, 1, y, 1, z));
+    }
+
+    template <>
+    void caffe_gpu_dot<double>(const int n, const double* x, const double* y, double* z){
+        CUBLAS_CHECK(cublasDdot(Caffe::cublas_handle(), n, x, 1, y, 1, z));
+    }
+
+    
 } // namespace caffe
 

@@ -117,5 +117,90 @@ namespace caffe {
     void caffe_rng_bernoulli<double>(const int n, const double p, unsigned int*r);
 
 
+    // z = a*x+y
+    template <>
+    void caffe_axpy<float>(const int n, const float alpha, const float*x, float* y){
+        cblas_saxpy(n, alpha, x, 1, y, 1);
+    }
+    template <>
+    void caffe_axpy<double>(const int n, const double alpha, const double*x, double* y){
+        cblas_daxpy(n, alpha, x, 1, y, 1);
+    }
+    // y = abs(x)
+    template <>
+    float caffe_cpu_asum<float>(const int n, const float* x){
+        return cblas_sasum(n, x, 1);
+    }
+
+    template <>
+    double caffe_cpu_asum<double>(const int n, const double* x){
+        return cblas_dasum(n, x, 1);
+    }
+
+    // y = x * x
+    template <>
+    float caffe_cpu_strided_dot<float>(const int n, const float* x, const int incx, 
+        const float* y, const int incy){
+        return cblas_sdot(n, x, incx, y, incy);
+    }
+
+    template <>
+    double caffe_cpu_strided_dot<double>(const int n, const double* x, const int incx, 
+        const double* y, const int incy){
+        return cblas_ddot(n, x, incx, y, incy);
+    }
+
+    template <typename Dtype>
+    Dtype caffe_cpu_dot(const int n, const Dtype* x, const Dtype* y){
+        return caffe_cpu_strided_dot(n,x,1,y,1);
+    }
+    // 注意下面是实例化，所以不能加<> 否则会报出
+    /**
+     * undefined reference to `double caffe::caffe_cpu_dot<double>(int, double const*, double const*)'
+       undefined reference to `float caffe::caffe_cpu_dot<float>(int, float const*, float const*)'
+    错误
+     */
+    template
+    float caffe_cpu_dot<float>(const int n, const float* x, const float* y);
+    template
+    double caffe_cpu_dot<double>(const int n, const double* x, const double* y);
+
+    // y = alpha * x
+    template <>
+    void caffe_scal<float>(const int n, const float alpha, float* x){
+        // cblas_sscal(const int N, const float alpha, float *X, const int incX);
+        cblas_sscal(n, alpha, x, 1);
+    }
+    template <>
+    void caffe_scal<double>(const int n, const double alpha, double* x){
+        cblas_dscal(n, alpha, x, 1);
+    }
+
+    template <typename Dtype> 
+    void caffe_copy(const int n, const Dtype* x, Dtype* y){
+        if(x != y){
+            if(Caffe::mode() == Caffe::GPU){
+            #ifndef CPU_ONLY
+                // NOLINT_NEXT_LINE(caffe/alt_fn)
+                CUDA_CHECK(cudaMemcpy(y,x, sizeof(Dtype)*n, cudaMemcpyDefault));
+            #else  
+                NO_GPU;
+            #endif
+            } else {
+                memcpy(y,x, sizeof(Dtype)* n);
+            }
+        }
+    }
+
+    // 这是实例化，不是特例化， 与template<> 区别是实例化只能使用这四个类别
+    template void caffe_copy<int>(const int n, const int*x, int*y);
+    template void caffe_copy<unsigned int>(const int n, const unsigned int* x, unsigned int* y);
+    template void caffe_copy<float>(const int N, const float* X, float* Y);
+    template void caffe_copy<double>(const int N, const double* X, double* Y);
+
+
+
+
+
 
 } // namespace caffe

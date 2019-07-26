@@ -8,6 +8,10 @@
 
 #include "caffe/common.hpp"
 #include "caffe/util/device_alternate.hpp"
+extern "C" { // 生命这个是需要C编译器编码的，否则会报出cblas_sscal等函数没有定义， 
+            // 如： undefined reference to `cblas_sscal(int, float, float*, int)'
+    #include <cblas.h>
+}
 // #include "caffe/util/mkl_alternate.hpp"
 
 namespace caffe {
@@ -34,7 +38,28 @@ namespace caffe {
     template <typename Dtype>
     void caffe_rng_bernoulli(const int n, const Dtype p, unsigned int* r);
 
-    // ------------------------------------------------------ GPU
+    // axpy
+    template <typename Dtype>
+    void caffe_axpy(const int n, const Dtype alpha, const Dtype* x, Dtype* y);
+
+    template <typename Dtype>
+    Dtype caffe_cpu_asum(const int n, const Dtype* x);
+
+    template <typename Dtype> 
+    Dtype caffe_cpu_strided_dot(const int n, const Dtype*x, const int incx,
+        const Dtype* y, const int incy);
+
+    template <typename Dtype> 
+    Dtype caffe_cpu_dot(const int n, const Dtype* x, const Dtype* y);
+
+    template <typename Dtype> 
+    void caffe_scal(const int n, const Dtype alpha, Dtype* x);
+    // cblas_sscal(const int N, const float alpha, float *X, const int incX);
+
+    template <typename Dtype>
+    void caffe_copy(const int n, const Dtype*x, Dtype*y);
+
+    // ------------------------------------------------------ GPU------------------------------------------------
 #ifndef CPU_ONLY // GPU
     template <typename Dtype>
     void caffe_gpu_scal(const int n, const Dtype alpha, Dtype *x);
@@ -73,6 +98,16 @@ namespace caffe {
     template <typename Dtype>
     void caffe_gpu_rng_bernoulli(const int n, const Dtype p, int* r);
 
+    // axpy
+    template <typename Dtype>
+    void caffe_gpu_axpy(const int n, const Dtype alpha, const Dtype* x, Dtype* y);
+
+    template <typename Dtype>
+    void caffe_gpu_asum(const int n, const Dtype* x, Dtype* y);
+
+    template <typename Dtype>
+    void caffe_gpu_dot(const int n, const Dtype*x, const Dtype* y, Dtype* z);
+    
 
 #endif // !CPU_ONLY
 
