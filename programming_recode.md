@@ -436,10 +436,14 @@ src/caffe/CMakeFiles/caffeproto.dir/__/__/include/caffe/proto/caffe.pb.cc.o: inc
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall")
 所以修改后错误消失
 ```
+## 2. redefinition of kMaxBlobAxes
+- 这是在编译的时候出错， （因为错误说明指向的是.cpp/.h文件所以是编译出错，而不是链接出错）
+- 编译出错需要再blob中添加ifndef， 而ifndef添加的不太对导致了错误。
+
 
 
 # 工程实现顺序
 1. caffe 一半，然后需要common.hpp
 2. common.hpp 有需要cudnn， device_alternate,
 3. 写common的测试代码test_common.cpp， 而它又需要syncedmem.hpp和math_functions.hpp
-4.
+4. blob.hpp, blob.cpp,  filler.hpp（对weight blob的填充）  test_blob.cpp

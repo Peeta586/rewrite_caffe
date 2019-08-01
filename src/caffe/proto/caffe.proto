@@ -57,3 +57,25 @@ message PoolingParameter {
     }
     optional RoundMode round_mode = 13 [default = CEIL];
 }
+
+message FillerParameter {
+    // the filler type
+    optional string type = 1 [default = 'constant'];
+    optional float value = 2 [default = 0];  // for constant filler
+    optional float min = 3 [default = 0]; // for uniform filler
+    optional float max = 4 [default = 1]; // for uniform filler
+    optional float mean = 5 [default = 0]; // mean value in Gaussian filler
+    optional float std = 6 [default = 1]; // std value in Gaussion filler
+
+    // The expected number of non-zero output weights for a given input in
+    // Gaussian filler -- the default -1 means don't perform sparsification.
+    optional int32 sparse = 7 [default = -1];
+    // 用于xavier 初始化等方法
+    enum VarianceNorm {
+        FAN_IN = 0;
+        FAN_OUT = 1;
+        AVERAGE = 2;
+    }
+    optional VarianceNorm variance_norm = 8 [default = FAN_IN];
+
+}

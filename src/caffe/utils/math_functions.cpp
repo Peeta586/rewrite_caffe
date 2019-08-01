@@ -147,6 +147,7 @@ namespace caffe {
     template <>
     double caffe_cpu_strided_dot<double>(const int n, const double* x, const int incx, 
         const double* y, const int incy){
+        // x * y  点乘
         return cblas_ddot(n, x, incx, y, incy);
     }
 
@@ -168,6 +169,7 @@ namespace caffe {
     // y = alpha * x
     template <>
     void caffe_scal<float>(const int n, const float alpha, float* x){
+        // incX 表示stride， 间隔，1 表示x的所有元素（每个元素间隔一个）
         // cblas_sscal(const int N, const float alpha, float *X, const int incX);
         cblas_sscal(n, alpha, x, 1);
     }

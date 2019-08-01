@@ -1,5 +1,5 @@
 #ifndef CAFFE_BLOB_HPP_
-#define CAFEE_BLOB_HPP_
+#define CAFFE_BLOB_HPP_
 
 #include <algorithm>
 #include <string>
