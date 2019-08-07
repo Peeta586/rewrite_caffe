@@ -47,7 +47,7 @@ namespace caffe {
                 virtual ~MultiDeviceTest() {}
     };
 
-    // 这参数list用于测试类型
+    // 这参数list用于测试类型, 测试这两个类型
     typedef ::testing::Types<float, double> TestDtypes;
 
     template <typename TypeParam>

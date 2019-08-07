@@ -157,6 +157,7 @@ class Blob {
                 << "Cannot use legacy accessors on Blobs with > 4 axes.";
             CHECK_LT(index, 4);
             CHECK_GE(index, -4);
+            // 将超界的维度设置为1
             if (index >= num_axes() || index < -num_axes()) {
                 // Axis is out of range, but still in [0, 3] (or [-4, -1] for reverse
                 // indexing) -- this special case simulates the one-padding used to fill
