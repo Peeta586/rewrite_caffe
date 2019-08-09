@@ -55,6 +55,7 @@ namespace caffe {
         typedef TypeParam Dtype;
         static const Caffe::Brew device = Caffe::CPU;
     };
+    // 实例化MultiDeviceTest 用结构体CPUDevice<Dtype>
     template <typename Dtype>
     class CPUDeviceTest:public MultiDeviceTest<CPUDevice<Dtype> > {
     };
@@ -86,8 +87,9 @@ namespace caffe {
              用前面生命的类型测试TestDtypes
              4) 实例化case和用例
              INSTANTIATE_TYPED_TEST_CASE_P(My, FooTest, TestDtypes);
-         * 
+         *
          */
+        // 用GPUDevice<Dtype>实例化MultiDeviceTest, 二级模板
         template <typename Dtype>
         class GPUDeviceTest : public MultiDeviceTest<GPUDevice<Dtype> > {
         };

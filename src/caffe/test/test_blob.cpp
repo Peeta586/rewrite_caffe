@@ -95,7 +95,7 @@ namespace caffe {
         blob_proto.set_channels(1);
         blob_proto.set_height(3);
         blob_proto.set_width(2);
-        EXPECT_TRUE(this->blob_->ReshapeEquals(blob_proto));
+        EXPECT_TRUE(this->blob_->ShapeEquals(blob_proto));
 
         // （3x2) blob != (0,1,3,2) legacy blob
         blob_proto.set_num(0);
@@ -137,11 +137,73 @@ namespace caffe {
             virtual ~BlobMathTest() {
                 delete blob_;
             }
-            Blob<Dtype>* const blob_;
+            Blob<Dtype>* const blob_;  // 指针内容不可变
             Dtype epsilon_;
-
     };
 
+    /**
+     * typedef ::testing::Types<CPUDevice<float>, CPUDevice<double>,
+                                GPUDevice<float>, GPUDevice<double> >
+                                TestDtypesAndDevices;
+     */
+    TYPED_TEST_CASE(BlobMathTest, TestDtypesAndDevices);
+
+    TYPED_TEST(BlobMathTest, TestsumOfSquares) {
+        // TypeParam 是MultiDeviceTest的模板变量， 被实例化成GPUDevice和CPUDevice 结构体
+        // 也就是TypeParam实际上表示为结构体变量
+        /**
+        template <typename TypeParam> // 此处的TypeParam表示float或double
+        struct GPUDevice {
+            typedef TypeParam Dtype;
+            static const Caffe::Brew device = Caffe::GPU;
+        };或
+
+        template <typename TypeParam>
+        struct CPUDevice {
+            typedef TypeParam Dtype;
+            static const Caffe::Brew device = Caffe::CPU;
+        };
+         */
+        typedef typename TypeParam::Dtype Dtype;
+
+        // unintialized blob should have sum of squares == 0
+        EXPECT_EQ(0, this->blob_->sumsq_data());
+        EXPECT_EQ(0, this->blob_->sumsq_diff());
+
+        FillerParameter filler_param;
+        filler_param.set_min(-3);
+        filler_param.set_max(3);
+        UniformFiller<Dtype> filler(filler_param);
+        filler.Fill(this->blob_);
+
+        Dtype expected_sumsq = 0;
+        const Dtype * data = this->blob_->cpu_data();
+        for (int i = 0; i < this->blob_->count(); ++i){
+            expected_sumsq += data[i] * data[i];
+        }
+
+        // Do a mutable access on the current device,
+        // so that the sumsq computation is done on that device.
+        // (Otherwise, this would only check the CPU sumsq implementation.)
+        switch (TypeParam::device)
+        {
+        case Caffe::CPU:
+            // mutable的函数调用包含数据在不同设备上的传输过程，这样能测试更全面
+            this->blob_->mutable_cpu_data();
+            break;
+        case Caffe::GPU: 
+            this->blob_->mutable_gpu_data();
+            break;
+        default:
+            LOG(FATAL)<< "Unknown device: " << TypeParam::device;
+        }
+        EXPECT_NEAR(expected_sumsq, this->blob_->sumsq_data(),
+                this->epsilon_ * expected_sumsq);
+        EXPECT_EQ(0, this->blob_->sumsq_diff());
+
+        // check sumsq_diff too
+
+    }
 
 
 } // namespace caffe
