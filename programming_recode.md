@@ -398,7 +398,162 @@ shift+ctrl+p, 然后输入C/C++ 然后找C/C++ configure file (JSON); 然后配�
 ```
 
 ## 16. test_blob中的类型测试用例
+首先有个testing::Test子类，用于检测多设备上的代码测试
+```C++
+template <typename TypeParam>
+class MultiDeviceTest : public ::testing::Test {
+    public:
+        typedef typename TypeParam::Dtype Dtype;
+        protected:
+            MultiDeviceTest() {
+                Caffe::set_mode(TypeParam::device);
+            }
+            virtual ~MultiDeviceTest() {}
+};
+// 注意TypeParam::device 模板类型有device属性，
 
+// 根据下面的实现代码可以发现： TypeParam模板类型是一个结构体;
+// 模板类型可以是一个模板类型的结构体，所以，实例化时，仍然还有Dtype的模板类型，用于表示模板结构体的模板类型
+////// CPU device的实例化--------------------------------
+template <typename TypeParam>
+struct CPUDevice {
+    typedef TypeParam Dtype;
+    static const Caffe::Brew device = Caffe::CPU;
+};
+// 实例化MultiDeviceTest 用结构体CPUDevice<Dtype>
+template <typename Dtype>
+class CPUDeviceTest:public MultiDeviceTest<CPUDevice<Dtype> > {
+};
+/////// GPU 模板实例化--------------------------------
+template <typename TypeParam>
+struct GPUDevice {
+    typedef TypeParam Dtype;
+    static const Caffe::Brew device = Caffe::GPU;
+};
+template <typename Dtype>
+class GPUDeviceTest : public MultiDeviceTest<GPUDevice<Dtype> > {
+};
+
+// 设备类型测试
+
+
+```
+设备类型测试
+```C++
+// test_caffe_main 设备类型测试，这个跟单纯的类型测试类似。
+typedef ::testing::Types<CPUDevice<float>, CPUDevice<double>,
+GPUDevice<float>, GPUDevice<double> >
+TestDtypesAndDevices;
+
+// 先继承该类
+template <typename TypeParam>
+class BlobMathTest: public MultiDeviceTest<TypeParam> {
+    typedef typename TypeParam::Dtype Dtype; // typename 将模板表示为类型
+    protected:
+        BlobMathTest():
+            blob_(new Blob<Dtype>(2,3,4,5)),
+            epsilon_(1e-6){}
+        virtual ~BlobMathTest() {
+            delete blob_;
+        }
+        Blob<Dtype>* const blob_;  // 指针内容不可变
+        Dtype epsilon_;
+};
+
+// 配置设备类型case
+TYPED_TEST_CASE(BlobMathTest, TestDtypesAndDevices);
+
+////// 使用TYPED_TEST 进行类型测试
+TYPED_TEST(BlobMathTest, TestsumOfSquares) {
+    // TypeParam 是MultiDeviceTest的模板变量， 被实例化成GPUDevice和CPUDevice 结构体
+    // 也就是TypeParam实际上表示为结构体变量
+    /**
+    template <typename TypeParam> // 此处的TypeParam表示float或double
+    struct GPUDevice {
+        typedef TypeParam Dtype;
+        static const Caffe::Brew device = Caffe::GPU;
+    };或
+
+    template <typename TypeParam>
+    struct CPUDevice {
+        typedef TypeParam Dtype;
+        static const Caffe::Brew device = Caffe::CPU;
+    };
+     */
+    typedef typename TypeParam::Dtype Dtype;
+
+    // unintialized blob should have sum of squares == 0
+    EXPECT_EQ(0, this->blob_->sumsq_data());
+    EXPECT_EQ(0, this->blob_->sumsq_diff());
+
+    FillerParameter filler_param;
+    filler_param.set_min(-3);
+    filler_param.set_max(3);
+    UniformFiller<Dtype> filler(filler_param);
+    filler.Fill(this->blob_);
+
+    Dtype expected_sumsq = 0;
+    const Dtype * data = this->blob_->cpu_data();
+    for (int i = 0; i < this->blob_->count(); ++i){
+        expected_sumsq += data[i] * data[i];
+    }
+
+    // Do a mutable access on the current device,
+    // so that the sumsq computation is done on that device.
+    // (Otherwise, this would only check the CPU sumsq implementation.)
+    switch (TypeParam::device)
+    {
+    case Caffe::CPU:
+        // mutable的函数调用包含数据在不同设备上的传输过程，这样能测试更全面
+        this->blob_->mutable_cpu_data();
+        break;
+    case Caffe::GPU:
+        this->blob_->mutable_gpu_data();
+        break;
+    default:
+        LOG(FATAL)<< "Unknown device: " << TypeParam::device;
+    }
+    EXPECT_NEAR(expected_sumsq, this->blob_->sumsq_data(),
+            this->epsilon_ * expected_sumsq);
+    EXPECT_EQ(0, this->blob_->sumsq_diff());
+
+    // check sumsq_diff too
+
+}
+
+```
+
+单纯的类型测试的使用： test_blob.cpp
+```C++
+// test_caffe_main 定义要测试的类型
+typedef ::testing::Types<float, double> TestDtypes;
+
+
+// 先实现一个测试子类
+template <typename Dtype>
+class BlobSimpleTest : public ::testing::Test {
+protected:
+BlobSimpleTest()
+    : blob_(new Blob<Dtype>()),
+        blob_preshaped_(new Blob<Dtype>(2, 3, 4, 5)) {}
+virtual ~BlobSimpleTest() { delete blob_; delete blob_preshaped_; }
+Blob<Dtype>* const blob_;
+Blob<Dtype>* const blob_preshaped_;
+};
+// 配置将该类的类型测试case： 使用了上面定义的
+TYPED_TEST_CASE(BlobSimpleTest, TestDtypes); // BlobSimpleTest
+
+///// TYPED_TEST进行测试
+TYPED_TEST(BlobSimpleTest, TestReshape){
+    this->blob_->Reshape(2, 3, 4, 5);
+    EXPECT_EQ(this->blob_->num(), 2);
+    EXPECT_EQ(this->blob_->channels(), 3);
+    EXPECT_EQ(this->blob_->height(), 4);
+    EXPECT_EQ(this->blob_->width(), 5);
+    EXPECT_EQ(this->blob_->count(), 120);
+}
+
+```
 
 
 

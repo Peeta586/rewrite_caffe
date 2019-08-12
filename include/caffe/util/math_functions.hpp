@@ -55,6 +55,8 @@ namespace caffe {
     template <typename Dtype> 
     void caffe_scal(const int n, const Dtype alpha, Dtype* x);
     // cblas_sscal(const int N, const float alpha, float *X, const int incX);
+    template <typename Dtype> 
+    void caffe_cpu_scale(const int n, const Dtype alpha, const Dtype* x, Dtype* y);
 
     template <typename Dtype>
     void caffe_copy(const int n, const Dtype*x, Dtype*y);
