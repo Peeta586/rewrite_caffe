@@ -371,6 +371,7 @@ undefine reference错误。
 
 
 
+
 ## 15.Vscode 出现#include errors detected. Please update your includePath. IntelliSense
 shift+ctrl+p, 然后输入C/C++ 然后找C/C++ configure file (JSON); 然后配置如下
 
@@ -396,6 +397,159 @@ shift+ctrl+p, 然后输入C/C++ 然后找C/C++ configure file (JSON); 然后配�
     "version": 4
 }
 ```
+
+## 16. 测试用例的书写test_blob.cpp
+test_caffe_main.cpp
+```C++
+template <typename TypeParam>
+class MultiDeviceTest : public ::testing::Test {
+    public:
+        typedef typename TypeParam::Dtype Dtype;
+        protected:
+            MultiDeviceTest() {
+                Caffe::set_mode(TypeParam::device);
+            }
+            virtual ~MultiDeviceTest() {}
+};
+// 设备测试，而且它的模板变量是结构体
+//如下：CPU上的测试
+template <typename TypeParam>
+struct CPUDevice {
+    typedef TypeParam Dtype;
+    static const Caffe::Brew device = Caffe::CPU;
+};
+// 实例化MultiDeviceTest 用结构体CPUDevice<Dtype>
+template <typename Dtype>
+class CPUDeviceTest:public MultiDeviceTest<CPUDevice<Dtype> > {
+};
+// 类型测试
+typedef ::testing::Types<float, double> TestDtypes;
+
+// 设备结构体类型的测试
+typedef ::testing::Types<CPUDevice<float>, CPUDevice<double>,
+GPUDevice<float>, GPUDevice<double> >
+TestDtypesAndDevices;
+```
+在test_blob.cpp中
+```C++
+// 类型测试 的使用，
+typedef ::testing::Types<float, double> TestDtypes;
+// 第一步： 定义测试类
+template <typename Dtype>
+class BlobSimpleTest : public ::testing::Test {
+protected:
+BlobSimpleTest()
+    : blob_(new Blob<Dtype>()),
+        blob_preshaped_(new Blob<Dtype>(2, 3, 4, 5)) {}
+virtual ~BlobSimpleTest() { delete blob_; delete blob_preshaped_; }
+Blob<Dtype>* const blob_;
+Blob<Dtype>* const blob_preshaped_;
+};
+
+// 第二步： 类型测试变量，配置给测试类
+// 对测试类进一步的设置， 设置他要测试的类型
+TYPED_TEST_CASE(BlobSimpleTest, TestDtypes); // BlobSimpleTest
+
+// 用TYPED_TEST进行测试
+TYPED_TEST(BlobSimpleTest, TestInitialization){
+  EXPECT_TRUE(this->blob_);  // 用这个用例类的内部成员变量
+  EXPECT_TRUE(this->blob_preshaped_);
+  EXPECT_EQ(this->blob_preshaped_->num(), 2);
+  EXPECT_EQ(this->blob_preshaped_->channels(), 3);
+  EXPECT_EQ(this->blob_preshaped_->height(), 4);
+  EXPECT_EQ(this->blob_preshaped_->width(), 5);
+  EXPECT_EQ(this->blob_preshaped_->count(), 120);
+  EXPECT_EQ(this->blob_->num_axes(), 0);
+  EXPECT_EQ(this->blob_->count(), 0);
+}
+///////**** 设备测试也同等类似书写方式
+```
+设备类型的测试（类型是结构体）
+```C++
+template <typename TypeParam>
+class BlobMathTest: public MultiDeviceTest<TypeParam> {
+    typedef typename TypeParam::Dtype Dtype; // typename 将模板表示为类型
+    protected:
+        BlobMathTest():
+            blob_(new Blob<Dtype>(2,3,4,5)),
+            epsilon_(1e-6){}
+        virtual ~BlobMathTest() {
+            delete blob_;
+        }
+        Blob<Dtype>* const blob_;  // 指针内容不可变
+        Dtype epsilon_;
+};
+
+/**
+ * typedef ::testing::Types<CPUDevice<float>,
+ CPUDevice<double>,
+GPUDevice<float>, GPUDevice<double> >
+TestDtypesAndDevices;
+ */
+TYPED_TEST_CASE(BlobMathTest, TestDtypesAndDevices);
+
+TYPED_TEST(BlobMathTest, TestsumOfSquares) {
+    // TypeParam 是MultiDeviceTest的模板变量， 被实例化成GPUDevice和CPUDevice 结构体
+    // 也就是TypeParam实际上表示为结构体变量
+    /**
+    template <typename TypeParam> // 此处的TypeParam表示float或double
+    struct GPUDevice {
+        typedef TypeParam Dtype;
+        static const Caffe::Brew device = Caffe::GPU;
+    };或
+
+    template <typename TypeParam>
+    struct CPUDevice {
+        typedef TypeParam Dtype;
+        static const Caffe::Brew device = Caffe::CPU;
+    };
+     */
+    // 注意每个测试用例都可以TypeParam的方式访问测试用例的类（如BlobMathTest-继承自testing::Test）的模板变量。 不管他们的模板变量起什么名字，都用TypeParam进行类型访问。 
+    typedef typename TypeParam::Dtype Dtype;
+
+    // unintialized blob should have sum of squares == 0
+    EXPECT_EQ(0, this->blob_->sumsq_data());
+    EXPECT_EQ(0, this->blob_->sumsq_diff());
+
+    FillerParameter filler_param;
+    filler_param.set_min(-3);
+    filler_param.set_max(3);
+    UniformFiller<Dtype> filler(filler_param);
+    filler.Fill(this->blob_);
+
+    Dtype expected_sumsq = 0;
+    const Dtype * data = this->blob_->cpu_data();
+    for (int i = 0; i < this->blob_->count(); ++i){
+        expected_sumsq += data[i] * data[i];
+    }
+
+    // Do a mutable access on the current device,
+    // so that the sumsq computation is done on that device.
+    // (Otherwise, this would only check the CPU sumsq implementation.)
+    switch (TypeParam::device)
+    {
+    case Caffe::CPU:
+        // mutable的函数调用包含数据在不同设备上的传输过程，这样能测试更全面
+        this->blob_->mutable_cpu_data();
+        break;
+    case Caffe::GPU:
+        this->blob_->mutable_gpu_data();
+        break;
+    default:
+        LOG(FATAL)<< "Unknown device: " << TypeParam::device;
+    }
+    EXPECT_NEAR(expected_sumsq, this->blob_->sumsq_data(),
+            this->epsilon_ * expected_sumsq);
+    EXPECT_EQ(0, this->blob_->sumsq_diff());
+
+    // check sumsq_diff too
+
+}
+
+
+```
+
+
 
 
 
