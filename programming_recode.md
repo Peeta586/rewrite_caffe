@@ -398,13 +398,8 @@ shift+ctrl+p, 然后输入C/C++ 然后找C/C++ configure file (JSON); 然后配�
 }
 ```
 
-<<<<<<< HEAD
-## 16. 测试用例的书写test_blob.cpp
-test_caffe_main.cpp
-=======
 ## 16. test_blob中的类型测试用例
 首先有个testing::Test子类，用于检测多设备上的代码测试
->>>>>>> 6fdd08cade8c4eef55b3b6e035f4790399600630
 ```C++
 template <typename TypeParam>
 class MultiDeviceTest : public ::testing::Test {
@@ -416,16 +411,11 @@ class MultiDeviceTest : public ::testing::Test {
             }
             virtual ~MultiDeviceTest() {}
 };
-<<<<<<< HEAD
-// 设备测试，而且它的模板变量是结构体
-//如下：CPU上的测试
-=======
 // 注意TypeParam::device 模板类型有device属性，
 
 // 根据下面的实现代码可以发现： TypeParam模板类型是一个结构体;
 // 模板类型可以是一个模板类型的结构体，所以，实例化时，仍然还有Dtype的模板类型，用于表示模板结构体的模板类型
 ////// CPU device的实例化--------------------------------
->>>>>>> 6fdd08cade8c4eef55b3b6e035f4790399600630
 template <typename TypeParam>
 struct CPUDevice {
     typedef TypeParam Dtype;
@@ -435,7 +425,6 @@ struct CPUDevice {
 template <typename Dtype>
 class CPUDeviceTest:public MultiDeviceTest<CPUDevice<Dtype> > {
 };
-<<<<<<< HEAD
 // 类型测试
 typedef ::testing::Types<float, double> TestDtypes;
 
@@ -480,30 +469,6 @@ TYPED_TEST(BlobSimpleTest, TestInitialization){
 ```
 设备类型的测试（类型是结构体）
 ```C++
-=======
-/////// GPU 模板实例化--------------------------------
-template <typename TypeParam>
-struct GPUDevice {
-    typedef TypeParam Dtype;
-    static const Caffe::Brew device = Caffe::GPU;
-};
-template <typename Dtype>
-class GPUDeviceTest : public MultiDeviceTest<GPUDevice<Dtype> > {
-};
-
-// 设备类型测试
-
-
-```
-设备类型测试
-```C++
-// test_caffe_main 设备类型测试，这个跟单纯的类型测试类似。
-typedef ::testing::Types<CPUDevice<float>, CPUDevice<double>,
-GPUDevice<float>, GPUDevice<double> >
-TestDtypesAndDevices;
-
-// 先继承该类
->>>>>>> 6fdd08cade8c4eef55b3b6e035f4790399600630
 template <typename TypeParam>
 class BlobMathTest: public MultiDeviceTest<TypeParam> {
     typedef typename TypeParam::Dtype Dtype; // typename 将模板表示为类型
@@ -518,7 +483,6 @@ class BlobMathTest: public MultiDeviceTest<TypeParam> {
         Dtype epsilon_;
 };
 
-<<<<<<< HEAD
 /**
  * typedef ::testing::Types<CPUDevice<float>,
  CPUDevice<double>,
@@ -527,12 +491,6 @@ TestDtypesAndDevices;
  */
 TYPED_TEST_CASE(BlobMathTest, TestDtypesAndDevices);
 
-=======
-// 配置设备类型case
-TYPED_TEST_CASE(BlobMathTest, TestDtypesAndDevices);
-
-////// 使用TYPED_TEST 进行类型测试
->>>>>>> 6fdd08cade8c4eef55b3b6e035f4790399600630
 TYPED_TEST(BlobMathTest, TestsumOfSquares) {
     // TypeParam 是MultiDeviceTest的模板变量， 被实例化成GPUDevice和CPUDevice 结构体
     // 也就是TypeParam实际上表示为结构体变量
@@ -549,10 +507,7 @@ TYPED_TEST(BlobMathTest, TestsumOfSquares) {
         static const Caffe::Brew device = Caffe::CPU;
     };
      */
-<<<<<<< HEAD
-    // 注意每个测试用例都可以TypeParam的方式访问测试用例的类（如BlobMathTest-继承自testing::Test）的模板变量。 不管他们的模板变量起什么名字，都用TypeParam进行类型访问。 
-=======
->>>>>>> 6fdd08cade8c4eef55b3b6e035f4790399600630
+    // 注意每个测试用例都可以TypeParam的方式访问测试用例的类（如BlobMathTest-继承自testing::Test）的模板变量。 不管他们的模板变量起什么名字，都用TypeParam进行类型访问。
     typedef typename TypeParam::Dtype Dtype;
 
     // unintialized blob should have sum of squares == 0
@@ -594,12 +549,6 @@ TYPED_TEST(BlobMathTest, TestsumOfSquares) {
 
 }
 
-<<<<<<< HEAD
-
-```
-
-
-=======
 ```
 
 单纯的类型测试的使用： test_blob.cpp
@@ -633,7 +582,6 @@ TYPED_TEST(BlobSimpleTest, TestReshape){
 }
 
 ```
->>>>>>> 6fdd08cade8c4eef55b3b6e035f4790399600630
 
 
 
