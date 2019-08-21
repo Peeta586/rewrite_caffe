@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/lib/libcaffe.so",
+            "program": "${workspaceFolder}/src/caffe/test/test_blob.cpp",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

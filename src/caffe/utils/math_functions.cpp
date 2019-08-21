@@ -178,6 +178,17 @@ namespace caffe {
         cblas_dscal(n, alpha, x, 1);
     }
 
+    template <>
+    void caffe_cpu_scale<float>(const int n, const float alpha, const float* x, float* y){
+        cblas_scopy(n, x, 1, y, 1);
+        cblas_sscal(n, alpha, y, 1);
+    }
+    template <>
+    void caffe_cpu_scale<double>(const int n, const double alpha, const double* x, double* y){
+        cblas_dcopy(n, x, 1, y, 1);
+        cblas_dscal(n, alpha, y, 1);
+    }
+
     template <typename Dtype> 
     void caffe_copy(const int n, const Dtype* x, Dtype* y){
         if(x != y){

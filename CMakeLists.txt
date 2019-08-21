@@ -23,6 +23,7 @@ endif()
 # Caffe_BINARY_DIR，此时同PROJECT_BINARY_DIR
 project(Caffe C CXX)
 
+set(CMAKE_BUILD_TYPE Debug)
 
 # ------------------caffe version settings
 set(CAFFE_TARGET_VERSION "1.0.0" CACHE STRING "Caffe logical version")
