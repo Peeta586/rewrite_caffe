@@ -27,7 +27,7 @@ message(STATUS "caffe camkelist src: ${srcs}")
 # 因为一些库和anaconda3/libs冲突了，它选的是anaconda3里面的库
 add_library(caffe ${srcs})
 caffe_default_properties(caffe)
-message(STATUS "add lib caffe Caffe_LINKER_LIBS: ${Caffe_LINKER_LIBS} ")
+message(STATUS "add lib caffe Caffe_LINKER_LIBS: ${Caffe_INCLUDE_DIRS}")
 target_link_libraries(caffe ${Caffe_LINKER_LIBS})
 target_include_directories(caffe ${Caffe_INCLUDE_DIRS}
                                  PUBLIC
