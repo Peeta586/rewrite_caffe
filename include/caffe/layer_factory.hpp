@@ -136,7 +136,7 @@ namespace caffe {
     // #type 它代表把宏的参数变成字符串, 如果type是 conv1, 则#type就是“conv1”
     #define REGISTER_LAYER_CREATOR(type, creator) \
         static LayerRegisterer<float> g_creator_f_##type(#type, creator<float>); \
-        static LayerRegisterer<double> g_creator_d_##type(#type, creator<double>); \
+        static LayerRegisterer<double> g_creator_d_##type(#type, creator<double>); 
     
     #define REGISTER_LAYER_CLASS(type)  \
     template <typename Dtype> \

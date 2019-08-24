@@ -60,6 +60,8 @@ namespace caffe {
 
     template <typename Dtype>
     void caffe_copy(const int n, const Dtype*x, Dtype*y);
+    template <typename Dtype> 
+    void caffe_set(const int n, const Dtype alpha, Dtype* x);
 
     // ------------------------------------------------------ GPU------------------------------------------------
 #ifndef CPU_ONLY // GPU

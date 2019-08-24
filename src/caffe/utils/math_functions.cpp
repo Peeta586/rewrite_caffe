@@ -212,7 +212,16 @@ namespace caffe {
     template void caffe_copy<double>(const int N, const double* X, double* Y);
 
 
-
+    template <typename Dtype> 
+    void caffe_set(const int n, const Dtype alpha, Dtype* x){
+        if(alpha == 0){
+            memset(x, 0, sizeof(Dtype)*n); // NOLINT(caffe/alt_fn)
+            return;
+        }
+        for(int i =0; i < n; ++i){
+            y[i] = alpha;
+        }
+    }
 
 
 

@@ -583,6 +583,35 @@ TYPED_TEST(BlobSimpleTest, TestReshape){
 
 ```
 
+## 17. layerFactory
+该类是一个注册工厂模式， 用map实现字符串到创建实例函数指针的映射
+
+
+## 18. NetStateRule
+其中的stage还不知道干什么用的？
+NetStateRule：本身用于指定该层在哪个phase中使用，但是stage不知道指定什么
+```shell
+message NetStateRule {
+    // Set phase to require the NetState have a particular phase (TRAIN or TEST)
+    // to meet this rule.
+    // 设置这一层在那个阶段被inlude或者被exclude
+    optional Phase phase = 1;
+
+    // Set the minimum and/or maximum levels in which the layer should be used.
+    // Leave undefined to meet the rule regardless of level.
+    // 设置等级
+    optional int32 min_level =2;
+    optional int32 max_level =3;
+
+    // Customizable sets of stages to include or exclude.
+    // The net must have ALL of the specified stages and NONE of the specified
+    // "not_stage"s to meet the rule.
+    // (Use multiple NetStateRules to specify conjunctions of stages.)
+    // 这个参数还不知道干什么用
+    repeated string stage = 4;
+    repeated string not_stage = 5;
+}
+```
 
 
 # 错误记录

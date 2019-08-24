@@ -77,5 +77,245 @@ message FillerParameter {
         AVERAGE = 2;
     }
     optional VarianceNorm variance_norm = 8 [default = FAN_IN];
+}
+
+
+enum Phase {
+    TRAIN = 0;
+    TEST = 1;
+}
+
+// Specifies training parameters (multipliers on global learning constants,
+// and the name and other settings used for weight sharing).
+message ParamSpec {
+    // The names of the parameter blobs -- useful for sharing parameters among
+    // layers, but never required otherwise.  To share a parameter between two
+    // layers, give it a (non-empty) name.
+    // 如果一个层在多个分支使用，那么需要指定层名
+    optional string name = 1;
+
+    // Whether to require shared weights to have the same shape, or just the same
+    // count -- defaults to STRICT if unspecified.
+    // 检查维度的方式， 是否严格是按照num, channels, height, width进行检查，还是粗略检查
+    optional DimCheckMode share_mode = 2;
+    enum DimCheckMode {
+        // STRICT (default) requires that num, channels, height, width each match.
+        STRICT = 0;
+        // PERMISSIVE requires only the count (num*channels*height*width) to match.
+        PERMISSIVE = 1;
+    }
+
+    // The multiplier on the global learning rate for this parameter.
+    // 学习率系数
+    optional float lr_mult = 3 [default = 1.0];
+    
+    // The multiplier on the global weight decay for this parameter.
+    optional float decay_mult = 4 [default = 1.0];
+
+}
+
+/*
+作用：StateMeetsRule()中net的state是否满足NetStaterule
+用构造net时的输入phase/level/stage与prototxt中各层的规则(include/exclude)比较,决定本层是否要包含在net中判断rule是否相同，分为5个判断
+1. Phase: train, test, 比如train的layer不适用于test
+2. Min_level：本层level不小于min_level，则满足包含条件
+3. Max_level：本层leve不大于max_leve，则满足包含条件
+4. Stage： stage能在NetStateRule::stage中找到，则包含本层
+5. Non_stage： stages能在NetStateRule::non_stage中找到，则排除本层
+解释
+在caffe中，所有参数结构定义在caffe.proto中，由protobuf的protoc.exe生成caffe.pb.c及caffe.pb.h，从而对数据结构结构进行管理。在使用时，网络结构往往会定义在一个<project_name>.prototxt的文件中。在定义net网络结构的prototxt文件中往往会定义某层的include/exclude参数，以确定该层网络是否要包含在某些具体的结构中或排除在外。顾名思义，include表示如果在构造net时如果满足include的条件，本层就包含在net中；exclude表示在构造net时如果满足exclude条件，本层就不会包含在net中。
+
+管理这个被读取后的include还是exclude参数的，就是caffe.proto中的NetStateRule类，类中有phase、min_level、max_level、stage、not_stage 5个参数，也就是我们所说的过滤得规则。这些过滤规则往往是在网络构造时传入的（即：构造net时的输入参数），可用如下的方法来构造一个新net：
+
+Net<Dtype>::Net(const string& param_file, Phase phase, const int level, const vector<string>* stages, const Net* root_net)
+
+对于包含include参数的层：如果满足min_level<level<max_level 或 stages中任意一个元素能在NetStateRule::stage中找到, 该层就会被保留在net中
+
+对于包含exclude参数的层：如果满足min_level<level<max_level 或 stages中任意一个元素能在NetStateRule::stage中找到, 该层就会从net中剔除
+
+当然如果是在NetStateRule::not_stage中找到， 结果正好相反，看下面的列子，
+
+layer {
+  name: "mnist"
+  type: "Data"
+  top: "data"
+  top: "label"
+  include {
+  phase: TEST
+    not_stage: "predict" # 在 predict 时过滤掉这一层
+  }
+  transform_param {
+    scale: 0.00390625
+  }
+  data_param {
+    source: "examples/mnist/mnist_test_lmdb"
+    batch_size: 100
+    backend: LMDB
+  }
+}
+
+# 增加 deploy 的输入层
+layer {
+  name: "data"
+  type: "Input"
+  top: "data"
+  input_param { shape: { dim: 1 dim: 1 dim: 28 dim: 28 } }
+  exclude {
+    phase: TEST
+    stage: "predict" # 在 predict 时不加上这一层
+  }
+}
+如果想进一步了解对参数进行过滤有什么实际用处，我推荐这篇文章< Caffe 神经网络配置 - All in one network >：
+
+https://yangwenbo.com/articles/caffe-net-config-all-in-one.html?utm_source=tuicool&utm_medium=referral
+
+stage的使用：
+Python:
+net = caffe.Net("train_val_deploy.prototxt", caffe.TEST, stages=['predict'],
+                weights="iter_N.caffemodel")
+C++:
+caffe::vector<caffe::string> stages;
+stages.push_back("predict");
+caffe::Net *net = new caffe::Net("train_val_deploy.prototxt", caffe::TEST, 0, &stages);
+
+*/
+
+message NetStateRule {
+    // Set phase to require the NetState have a particular phase (TRAIN or TEST)
+    // to meet this rule. 
+    // 设置这一层在那个阶段被inlude或者被exclude
+    optional Phase phase = 1;
+
+
+    /* ********************************************************************************************
+    下面两种参数level和stage使得层的堆叠设置更加灵活， 可以不同阶段或者不同情况设置下添加到网络或者移除网络
+    */
+
+    // Set the minimum and/or maximum levels in which the layer should be used.
+    // Leave undefined to meet the rule regardless of level.
+    // 设置等级
+    optional int32 min_level =2;
+    optional int32 max_level =3;
+
+    // Customizable sets of stages to include or exclude.
+    // The net must have ALL of the specified stages and NONE of the specified
+    // "not_stage"s to meet the rule.
+    // (Use multiple NetStateRules to specify conjunctions of stages.)
+    // 这个参数还不知道干什么用
+    repeated string stage = 4;
+    repeated string not_stage = 5;
+}
+
+// Message that stores parameters used to apply transformation
+// to the data layer's data
+message TransformationParameter {
+    // For data pre-processing, we can do simple scaling and subtracting the
+    // data mean, if provided. Note that the mean subtraction is always carried
+    // out before scaling.
+    optional float scale = 1 [defualt = 1];
+    // specify if we want to randomly mirror data.
+    optional bool mirror = 2 [default = false];
+    // Specify if we would like to randomly crop an image.
+    optional uint32 crop_size = 3 [default = 0];
+
+    // mean_file and mean_value cannot be specified at the same time
+    optional string mean_file = 4;
+    // if specified can be repeated once (would subtract it from all the channels)
+    // or can be repeated the same number of times as channels
+    // (would subtract them from the corresponding channel)
+    repeated float mean_value = 5;
+    // Force the decoded image to have 3 color channels.
+    optional bool force_color = 6 [default = false];
+    // Force the decoded image to have 1 color channels.
+    optional bool force_gray = 7 [default = false];
+
+}
+
+message LossParameter {
+
+    // If specified, ignore instances with the given label.
+    optional int32 ignore_label = 1;
+    // How to normalize the loss for loss layers that aggregate across batches,
+    // spatial dimensions, or other dimensions.  Currently only implemented in
+    // SoftmaxWithLoss and SigmoidCrossEntropyLoss layers.
+    enum NormalizationMode { // 在通道或者空间等维度上归一化损失
+        // Divide by the number of examples in the batch times spatial dimensions.
+        // Outputs that receive the ignore label will NOT be ignored in computing
+        // the normalization factor.
+        FULL = 0;
+        // Divide by the total number of output locations that do not take the
+        // ignore_label.  If ignore_label is not set, this behaves like FULL.
+        VALID = 1;
+        // Divide by the batch size.
+        BATCH_SIZE=2;
+        // Do not normalize the loss.
+        NONE=3;
+    }
+    optional NormalizationMode normalization = 3 [default = VALID];
+    // Deprecated.  Ignored if normalization is specified.  If normalization
+    // is not specified, then setting this to false will be equivalent to
+    // normalization = BATCH_SIZE to be consistent with previous behavior.
+    optional bool normalize = 2;
+}
+
+// NOTE
+// Update the next available ID when you add a new LayerParameter field.
+//
+// LayerParameter next available layer-specific ID: 149 (last added: clip_param)
+message LayerParameter {
+    optional string name = 1; //the layer name
+    optional string type = 2; // the layer type
+    repeated string bottom = 3; // the name of each bottom blob
+    repeated string top = 4; // the name of each top blob
+
+    // the train / test phase for computation
+    optional Phase phase = 10;
+
+    // The amount of weight to assign each top blob in the objective.
+    // Each layer assigns a default value, usually of either 0 or 1,
+    // to each top blob.
+    repeated float loss_weight = 5;
+
+    // Specifies training parameters (multipliers on global learning constants,
+    // and the name and other settings used for weight sharing).
+    // 一些影响超参数的超参系数
+    repeated ParamSpec param = 6;
+
+    // The blobs containing the numeric parameters of the layer.
+    repeated BlobProto blobs = 7;
+
+    // Specifies whether to backpropagate to each bottom. If unspecified,
+    // Caffe will automatically infer whether each input needs backpropagation
+    // to compute parameter gradients. If set to true for some inputs,
+    // backpropagation to those inputs is forced; if set false for some inputs,
+    // backpropagation to those inputs is skipped.
+    //
+    // The size must be either 0 or equal to the number of bottoms.
+    // 可以控制那些输入需要反传，这样灵活控制模型的回传
+    repeated bool propagate_down = 11;
+
+    // Rules controlling whether and when a layer is included in the network,
+    // based on the current NetState.  You may specify a non-zero number of rules
+    // to include OR exclude, but not both.  If no include or exclude rules are
+    // specified, the layer is always included.  If the current NetState meets
+    // ANY (i.e., one or more) of the specified rules, the layer is
+    // included/excluded. 网络是否包含这个层，
+    // 在prototxt中设置时，可将test和train写一起，有些层共有，有些可能是不同phase特有的
+    repeated NetStateRule include = 8;  // include的作用是在满足NetStateRule中的一些参数时，包含，否则剔除
+    repeated NetStateRule exclude = 9;
+
+    // Parameters for data pre-processing.
+    optional TransformationParameter transform_param = 100;
+
+    // parameter shared by loss layers, 用于snapshot的时候保存详细参数
+    optional LossParameter loss_param = 101;
+
+    // Layer type-specific parameters.
+    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx下面开始定义所有可能的层
+    // Note: certain layers may have more than one computational engine [如pooling 有max,avg]
+    // for their implementation. These layers include an Engine type and
+    // engine parameter for selecting the implementation.
+    // The default for the engine is set by the ENGINE switch at compile-time.
+
 
 }
