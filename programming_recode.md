@@ -127,9 +127,10 @@ set_root_solver
 
 ```
 ### 7.1  boost::thread_specific_ptr是线程局部存储机制
+
 大多数函数都不是可重入的。这也就是说在某一个线程已经调用了一个函数时，如果你再调用同一个函数，那么这样是不安全的。一个不可重入的函数通过连续的调用来保存静态变量或者是返回一个指向静态数据的指针。 举例来说，std::strtok就是不可重入的，因为它使用静态变量来保存要被分割成符号的字符串。
 
-有两种方法可以让不可重用的函数变成可重用的函数。第一种方法就是改变接口，用指针或引用代替原先使用静态数据的地方。比方说，POSIX定义了strok_r，std::strtok中的一个可重入的变量，它用一个额外的char**参数来代替静态数据。这种方法很简单，而且提供了可能的最佳效果。但是这样必须改变公共接口，也就意味着必须改代码。另一种方法不用改变公有接口，而是用本地存储线程（thread local storage）来代替静态数据（有时也被成为特殊线程存储，thread-specific storage）。
+有两种方法可以让不可重用的函数变成可重用的函数。第一种方法就是改变接口，用指针或引用代替原先使用静态数据的地方。比方说，POSIX定义了strok_r，std::strtok中的一个可重入的变量，它用一个额外的char\*\*参数来代替静态数据。这种方法很简单，而且提供了可能的最佳效果。但是这样必须改变公共接口，也就意味着必须改代码。另一种方法不用改变公有接口，而是用本地存储线程（thread local storage）来代替静态数据（有时也被成为特殊线程存储，thread-specific storage）。
 
 Boost线程库提供了智能指针boost::thread_specific_ptr来访问本地存储线程。每一个线程第一次使用这个智能指针的实例时，它的初值是NULL，所以必须要先检查这个它的只是否为空，并且为它赋值。Boost线程库保证本地存储线程中保存的数据会在线程结束后被清除。
 
@@ -200,10 +201,11 @@ CMake 变量包含 Normal Variables、Cache Variables。
 - 修改 Cache 变量。可以通过 set(<variable> <value> CACHE INSTERNAL FORCE)，另一种方式是直接在终端中使用 cmake -D var=value ..来设定默认存在的CMake Cache 变量。
 
 ## 10. CMake 的function
-```C++
+```CMake
 # Filter out all files that are not included in selected list
 # Usage:
-#   caffe_leave_only_selected_tests(<filelist_variable> <selected_list>)
+#caffe_leave_only_selected_tests(<filelist_variable> <selected_list>)
+
 function(caffe_leave_only_selected_tests file_list)
   # ARGN 表示<selected_list>的传入, ARGN是后面参数的一个占位符，
   # 如果用caffe_leave_only_selected_tests(var1, var2), 那么ARGN就是var2
@@ -211,16 +213,16 @@ function(caffe_leave_only_selected_tests file_list)
     return() # blank list means leave all
   endif()
   # message(STATUS "caffe_leave_only_selected_tests - ARGN: ${ARGN}")
-  string(REPLACE "," ";" __selected ${ARGN})
-  list(APPEND __selected caffe_main)
+  string(REPLACE "," ";" \_\_selected ${ARGN})
+  list(APPEND \_\_selected caffe_main)
 
   # message(STATUS "caffe_leave_only_selected_tests, file_list: ${${file_list}}")
   set(result "")
   foreach(f ${${file_list}})
     get_filename_component(name ${f} NAME_WE)
     string(REGEX REPLACE "^test_" "" name ${name})
-    list(FIND __selected ${name} __index)
-    if(NOT __index EQUAL -1)
+    list(FIND \_\_selected ${name} \_\_index)
+    if(NOT \_\_index EQUAL -1)
       list(APPEND result ${f})
     endif()
   endforeach()
@@ -589,7 +591,7 @@ TYPED_TEST(BlobSimpleTest, TestReshape){
 
 ## 18. NetStateRule
 其中的stage还不知道干什么用的？
-NetStateRule：本身用于指定该层在哪个phase中使用，但是stage不知道指定什么
+
 ```shell
 message NetStateRule {
     // Set phase to require the NetState have a particular phase (TRAIN or TEST)
@@ -612,12 +614,92 @@ message NetStateRule {
     repeated string not_stage = 5;
 }
 ```
+具体作用说明：
+```C++
+作用：StateMeetsRule()中net的state是否满足NetStaterule
+用构造net时的输入phase/level/stage与prototxt中各层的规则(include/exclude)比较,决定本层是否要包含在net中判断rule是否相同，分为5个判断
+1. Phase: train, test, 比如train的layer不适用于test
+2. Min_level：本层level不小于min_level，则满足包含条件
+3. Max_level：本层leve不大于max_leve，则满足包含条件
+4. Stage： stage能在NetStateRule::stage中找到，则包含本层
+5. Non_stage： stages能在NetStateRule::non_stage中找到，则排除本层
+解释
+在caffe中，所有参数结构定义在caffe.proto中，由protobuf的protoc.exe生成caffe.pb.c及caffe.pb.h，从而对数据结构结构进行管理。在使用时，网络结构往往会定义在一个<project_name>.prototxt的文件中。
+在定义net网络结构的prototxt文件中往往会定义某层的include/exclude参数，以确定该层网络是否要包含在某些具体的结构中或排除在外。
+顾名思义，include表示如果在构造net时如果满足include的条件，本层就包含在net中；exclude表示在构造net时如果满足exclude条件，本层就不会包含在net中。
+
+管理这个被读取后的include还是exclude参数的，就是caffe.proto中的NetStateRule类，类中有phase、min_level、max_level、stage、not_stage 5个参数，也就是我们所说的过滤得规则。这些过滤规则往往是在网络构造时传入的（即：构造net时的输入参数），可用如下的方法来构造一个新net：
+
+Net<Dtype>::Net(const string& param_file, Phase phase, const int level, const vector<string>* stages, const Net* root_net)
+
+对于包含include参数的层：如果满足min_level<level<max_level 或 stages中任意一个元素能在NetStateRule::stage中找到, 该层就会被保留在net中
+
+对于包含exclude参数的层：如果满足min_level<level<max_level 或 stages中任意一个元素能在NetStateRule::stage中找到, 该层就会从net中剔除
+
+当然如果是在NetStateRule::not_stage中找到， 结果正好相反，看下面的列子，
+
+layer {
+  name: "mnist"
+  type: "Data"
+  top: "data"
+  top: "label"
+  include {
+  phase: TEST
+    not_stage: "predict" # 在 predict 时过滤掉这一层
+  }
+  transform_param {
+    scale: 0.00390625
+  }
+  data_param {
+    source: "examples/mnist/mnist_test_lmdb"
+    batch_size: 100
+    backend: LMDB
+  }
+}
+
+# 增加 deploy 的输入层
+layer {
+  name: "data"
+  type: "Input"
+  top: "data"
+  input_param { shape: { dim: 1 dim: 1 dim: 28 dim: 28 } }
+  exclude {
+    phase: TEST
+    stage: "predict" # 在 predict 时不加上这一层
+  }
+}
+如果想进一步了解对参数进行过滤有什么实际用处，我推荐这篇文章< Caffe 神经网络配置 - All in one network >：
+
+https://yangwenbo.com/articles/caffe-net-config-all-in-one.html?utm_source=tuicool&utm_medium=referral
+
+stage的使用：
+Python:
+net = caffe.Net("train_val_deploy.prototxt", caffe.TEST, stages=['predict'],
+                weights="iter_N.caffemodel")
+C++:
+caffe::vector<caffe::string> stages;
+stages.push_back("predict");
+caffe::Net *net = new caffe::Net("train_val_deploy.prototxt", caffe::TEST, 0, &stages);
+```
+
+## 18. 函数名后const
+```C++
+/**
+         * @brief Returns true if the layer requires an equal number of bottom and
+         *        top blobs.
+         *
+         * This method should be overridden to return true if your layer expects an
+         * equal number of bottom and top blobs.
+         * 函数名后面的const 表示给函数不能改变类的成员，这样会安全很多，只要这个函数不是用来改成员函数的我们都应该将其为这样形式
+         */
+        virtual inline bool EqualNumBottomTopBlobs() const { return false; }
+```
 
 
 # 错误记录
 
 ## 1. proto编译错误
-```c++
+```C++
 [ 14%] Building CXX object src/caffe/CMakeFiles/caffeproto.dir/__/__/include/caffe/proto/caffe.pb.cc.o
 c++: fatal error: no input files
 compilation terminated.
