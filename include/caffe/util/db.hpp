@@ -1,6 +1,7 @@
-//
-#ifdef WITH_PYTHON_LAYER
-#include "boost/python.hpp"
-namespace bp = boost::python;
+#ifndef CAFFE_UTIL_DB_HPP
+#define CAFFE_UTIL_DB_HPP
+
+
+
 #endif
 
