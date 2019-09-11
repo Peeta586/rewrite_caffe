@@ -48,8 +48,6 @@ namespace db {
     DB* GetDB(DataParameter::DB backend);
     DB* GetDB(const string& backend);
 
-
-
 } // namespace db
 
 } // namespace caffe
