@@ -72,6 +72,68 @@ Generator expressions have the form $<...>. To avoid confusion, this page deviat
 
 Generator expressions can be nested, as shown in most of the examples below.
 
+> 扩展知识：
+添加编译时的选项方法如下：
+
+- add_compile_options() 可以给当前目录以及当前目录以下的目录的 sources 添加编译选项
+- 2. target_compile_definitions ：
+```C++
+target_compile_definitions(<target>
+   <INTERFACE|PUBLIC|PRIVATE> [items1...]
+   [<INTERFACE|PUBLIC|PRIVATE> [items2...] ...])
+```
+是给给定的 <target> 添加编译选项， <target> 指的是由 add_executable() 产生的可执行文件或 add_library() 添加进来的库。 <INTERFACE|PUBLIC|PRIVATE> 指的是 [items...] 选项可以传播的范围， PUBLIC and INTERFACE  会传播 <target> 的 INTERFACE_COMPILE_DEFINITIONS 属性， PRIVATE and PUBLIC 会传播 <target> 的 COMPILE_DEFINITIONS  属性。
+
+- add_definitions(-DFOO -DBAR ...) :可以给当前目录以及当前目录以下的目录的 sources 添加编译行命令。如 cmake . 这样的在命令行输入的命令。cmake的命令格式如下：
+```
+1 cmake [<options>] (<path-to-source> | <path-to-existing-build>)
+2 cmake [(-D<var>=<value>)...] -P <cmake-script-file>
+3 cmake --build <dir> [<options>] [-- <build-tool-options>...]
+4 cmake -E <command> [<options>]
+5 cmake --find-package <options>...
+```
+**target_compile_options 与target_compile_definitions的区别**
+
+| 命名标签格式     | 说明     |
+| :------------- | :------------- |
+| target_include_directories(<target> [SYSTEM] [BEFORE]<INTERFACE\|PUBLIC\|PRIVATE> [items1...] [<INTERFACE\|PUBLIC\|PRIVATE> [items2...] ...])       | Include的头文件的查找目录，也就是Gcc的[-Idir...]选项       |
+|target_compile_definitions(<target> <INTERFACE\|PUBLIC\|PRIVATE> [items1...][<INTERFACE\|PUBLIC\|PRIVATE> [items2...] ...])|通过命令行定义的宏变量，也就是gcc的[-Dmacro[=defn]...]选项|
+|target_compile_options(<target> [BEFORE] <INTERFACE\|PUBLIC\|PRIVATE> [items1...] [<INTERFACE\|PUBLIC\|PRIVATE> [items2...] ...]|gcc其他的一些编译选项指定，比如-fPIC|
+
+也就是说，target_compile_definitions用来定义编译时控制编译代码的宏定义的选项的，target_compile_options是编译规则的一些选项。 具体如下实例所示：
+```c++
+# gcc头文件查找目录，相当于-I选项，e.g -I/foo/bar
+#CMAKE_SOURCE_DIR是cmake内置变量表示当前项目根目录
+target_include_directories(test_elf
+    PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/common
+    ${CMAKE_SOURCE_DIR}/syscalls
+)
+
+# 编译的宏定义，e.g 相当于-D选项 e.g -Dmacro=defn
+set(MONITOR_OMIT_BSS_INIT      "0")
+set(MONITOR_OMIT_DATA_INIT     "0")
+set(MONITOR_OMIT_T_CHECKS      "0")
+target_compile_definitions(test_elf
+    PRIVATE
+    MONITOR_OMIT_BSS_INIT=${MONITOR_OMIT_BSS_INIT}              
+    MONITOR_OMIT_DATA_INIT=${MONITOR_OMIT_DATA_INIT}            
+    MONITOR_TRAP_NT_IRQS=${MONITOR_TRAP_NT_IRQS}                          
+)
+
+# 其他编译选项定义，e.g -fPIC
+target_compile_options(test_elf
+    PRIVATE
+    -std=c99
+    -Wall
+    -Wextra
+    -Werror
+)
+```
+
+> 注意： cmake中的options(variable desc ON|OFF), 这个是作用与cmake中的CPU_ONLY变量的，对C++源码中的#ifdef CPU_ONLY没有控制作用，这个是用来控制cmake是否在编译的时候定义target_compile_definitions中传入-DCPU_ONLY来控制源代码中的#ifdef CPU_ONLY; ==所以一定要分清一个是作用cmake脚本语言的，一个是作用c++的==
+
 ## 6. device_alternate.hpp
 配置 cuda的错误检查宏，以及配置block数目和threads数目
 
@@ -116,7 +178,7 @@ set_root_solver
 等成员函数
 3)内部还有一些比较技巧性的东西比如：
 // CUDA: various checks for different function calls.
-//  防止重定义cudaError_t，这个以前在linux代码里面看过
+//  防止重定义cudaError_t，这个以前在linux代码里面看过,所以用do while将其括起来保证其是局部变量，从而不会有在一个文件内的重复定义
 // 实际上就是利用变量的局部声明
 #define CUDA_CHECK(condition) \
   /* Code block avoids redefinition of cudaError_t error */ \
