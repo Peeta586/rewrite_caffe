@@ -212,7 +212,7 @@ message TransformationParameter {
     // For data pre-processing, we can do simple scaling and subtracting the
     // data mean, if provided. Note that the mean subtraction is always carried
     // out before scaling.
-    optional float scale = 1 [defualt = 1];
+    optional float scale = 1 [default = 1];
     // specify if we want to randomly mirror data.
     optional bool mirror = 2 [default = false];
     // Specify if we would like to randomly crop an image.

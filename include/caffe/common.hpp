@@ -54,7 +54,7 @@ private: \
         const std::vector<Blob<float>*>& top); \
     template void classname<double>::Forward_gpu( \
         const std::vector<Blob<double>*>& bottom,\
-        const std::vector<Blob<double>*>& top) 
+        const std::vector<Blob<double>*>& top); 
 
 #define INSTANTIATE_LAYER_GPU_BACKWARD(classname) \
     template void classname<float>::Backward_gpu(\

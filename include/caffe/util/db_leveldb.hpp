@@ -19,11 +19,11 @@ namespace db {
             CHECK(iter_->status().ok()) << iter_->status().ToString();
         }
         ~LevelDBCursor() { delete iter_;}
-        virtual void SeekToFirst() { iter-> SeekToFirst();}
+        virtual void SeekToFirst() { iter_->SeekToFirst();}
         virtual void Next() { iter_->Next(); }
-        virtual string key() { return iter_>key().ToString(); }
+        virtual string key() { return iter_->key().ToString(); }
         virtual string value() { return iter_->value().ToString(); }
-        virtual bool valid { return iter_->Valid(); }
+        virtual bool valid() { return iter_->Valid(); }
 
         private: 
         leveldb::Iterator* iter_;
@@ -38,7 +38,7 @@ namespace db {
             batch_.Put(key, value);
         }
         virtual void Commit(){
-            leveldb::Status status = db_->write(leveldb::WriteOptions(), &batch_);
+            leveldb::Status status = db_->Write(leveldb::WriteOptions(), &batch_);
             CHECK(status.ok()) << "Failed to write batch to leveldb"
                     <<std::endl << status.ToString();
         }
@@ -51,7 +51,7 @@ namespace db {
 
     class LevelDB: public DB {
         public:
-        LevelDB():db_(NULL);
+        LevelDB():db_(NULL) { }
         virtual ~LevelDB() { Close();}
         virtual void Open(const string& source, Mode mode);
         virtual void Close(){
@@ -68,9 +68,8 @@ namespace db {
         }
 
         private: 
-        leveldb:DB* db_;
-    }
-
+        leveldb::DB* db_;
+    };
 
 }// namespace db
 

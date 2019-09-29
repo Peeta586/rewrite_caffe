@@ -53,7 +53,9 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "algorithm": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "*.txx": "cpp",
+        "string_view": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled"
 }

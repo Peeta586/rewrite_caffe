@@ -45,7 +45,7 @@ namespace caffe {
             phase_ = param.phase();
             if(layer_param_.blobs_size() > 0){
                 blobs_.resize(layer_param_.blobs_size());
-                for(int i = 0; i < layer_param_.blobs_size(), ++i){
+                for(int i = 0; i < layer_param_.blobs_size(); ++i){
                     blobs_[i].reset(new Blob<Dtype>());
                     blobs_[i]->FromProto(layer_param_.blobs(i));
                 }
@@ -124,7 +124,7 @@ namespace caffe {
          * Your layer should implement Forward_cpu and (optionally) Forward_gpu.
          * 根据情况调用不同的forward
          */
-        inline Dtype Forward(const vector<Blob<Dtype*>& bottom, const vector<Blob<Dtype>*>& top);
+        inline Dtype Forward(const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top);
 
         /**
          * @brief Given the top blob error gradients, compute the bottom blob error
@@ -155,7 +155,7 @@ namespace caffe {
          * @brief Returns the vector of learnable parameter blobs.
          * 返回值显性定义为shared_ptr， 不知道vector<Blob<Dtype>*>这样写可不可以
          */
-        vector<shared_ptr<Blob<Dtype> >& blobs(){
+        vector<shared_ptr<Blob<Dtype> > >& blobs(){
             return blobs_;
         }
 
@@ -286,16 +286,6 @@ namespace caffe {
         }
 
 
-        /**
-         * @brief Sets the loss associated with a top blob at a given index.
-         */
-        inline void set_loss(const int top_index, const Dtype value){
-            if(loss_.size() <= top_index){
-                loss_.resize(top_index + 1, Dtype(0));
-            }
-            loss_[top_index] = value;
-        }
-
         // ----------------------------- 保护成员
         protected: 
         /** The protobuf that stores the layer parameters */
@@ -353,12 +343,12 @@ namespace caffe {
                     << type() << "Layer takes " << ExactNumBottomBlobs()
                     <<"bottom blob(s) as input";
             }
-            if(MinBottomNBlobs() >= 0) {
+            if(MinBottomBlobs() >= 0) {
                 CHECK_LE(MinBottomBlobs(), bottom.size())
                     << type() << "Layer takes at least " << MinBottomBlobs()
                     << "bottom blob(s) as input.";
             }
-            if(MaxBottomNBlobs() >= 0) {
+            if(MaxBottomBlobs() >= 0) {
                 CHECK_GE(MaxBottomBlobs(), bottom.size())
                     << type() << "Layer takes at least " << MaxBottomBlobs()
                     << "bottom blob(s) as input.";
@@ -401,7 +391,7 @@ namespace caffe {
                     this->set_loss(top_id, loss_weight); // loss_[top_id] = loss_weight;
                     const int count = top[top_id]->count();
                     // 注意 loss_weight 计算在cpu上
-                    Dtype* loss_multiplier = top[top_id]->multable_cpu_diff();
+                    Dtype* loss_multiplier = top[top_id]->mutable_cpu_diff();
                     caffe_set(count, loss_weight, loss_multiplier);
                 }
             }

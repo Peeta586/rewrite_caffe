@@ -219,10 +219,11 @@ namespace caffe {
             return;
         }
         for(int i =0; i < n; ++i){
-            y[i] = alpha;
+            x[i] = alpha;
         }
     }
-
-
+    template void caffe_set<int>(const int N, const int alpha, int* x);
+    template void caffe_set<double>(const int n, const double alpha, double* x);
+    template void caffe_set<float>(const int n, const float alpha, float* x);
 
 } // namespace caffe

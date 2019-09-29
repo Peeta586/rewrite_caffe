@@ -102,6 +102,7 @@ namespace caffe {
                 iter != registry.end(); ++iter){
                 layer_types.push_back(iter->first);  // only store name string
             }
+            return layer_types;
         }
 
         private: 
@@ -113,7 +114,7 @@ namespace caffe {
         static string LayerTypeListString(){
             vector<string> layer_types = LayerTypeList();
             string layer_types_str;
-            fro(vector<string>::iterator iter = layer_types.begin();
+            for(vector<string>::iterator iter = layer_types.begin();
                 iter != layer_types.end(); ++iter){
                     if (iter != layer_types.begin()){
                         layer_types_str += ",";

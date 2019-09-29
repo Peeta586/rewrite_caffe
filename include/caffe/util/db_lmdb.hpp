@@ -96,7 +96,7 @@ namespace db {
         MDB_env* mdb_env_; 
         // 在制定环境下的指定数据库用MDB_dbi 句柄去操作
         MDB_dbi mdb_dbi_; // A handle for an individual database in the DB environment
-    }
+    };
 
 } // namespace db
 } // namespace caffe

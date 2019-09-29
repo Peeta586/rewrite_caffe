@@ -8,6 +8,7 @@
 
 namespace caffe {
 namespace db {
+    
     enum Mode { READ, WRITE, NEW};
     // 用于封装不同的db,如lmdb, leveldb
     // 游标
