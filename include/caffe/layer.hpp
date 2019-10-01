@@ -400,7 +400,9 @@ namespace caffe {
         // ------------------------------ 私有成员
         private: 
         DISABLE_COPY_AND_ASSIGN(Layer);
-    };
+    }; // class Layer
+
+    // ******************************** some implements
 
 } // namespace caffe
 
