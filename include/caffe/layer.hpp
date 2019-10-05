@@ -31,9 +31,9 @@ namespace caffe {
      * 一个统一接口， 也就是一个基类，用于封装各种不同的层进入到caffe中
      */
 
-    template <typename Dtype> 
+    template <typename Dtype>
     class Layer {
-        public: 
+        public:
         /**
          * You should not implement your own constructor. Any set up code should go
          * to SetUp(), where the dimensions of the bottom blobs are provided to the
@@ -71,7 +71,8 @@ namespace caffe {
             CheckBlobCounts(bottom, top); // 计算输入输出是否符合最小最大或者实际大小
             LayerSetUp(bottom, top); // 每一层有自己的setup定制化
             Reshape(bottom, top);
-            SetLossWeights(top); // 设置输出的fmaps的loss_weight
+            SetLossWeights(top); // 设置输出的fmaps的loss_weight， 一般会在最后输出层会有这个设置
+                                // 并且SetLossWeights的设置会影响loss的累计计算
         }
 
         /**
@@ -150,7 +151,7 @@ namespace caffe {
         inline void Backward(const vector<Blob<Dtype>*>& top,
                             const vector<bool>& propagate_down,
                             const vector<Blob<Dtype>*>& bottom);
-        
+
         /**
          * @brief Returns the vector of learnable parameter blobs.
          * 返回值显性定义为shared_ptr， 不知道vector<Blob<Dtype>*>这样写可不可以
@@ -287,7 +288,7 @@ namespace caffe {
 
 
         // ----------------------------- 保护成员
-        protected: 
+        protected:
         /** The protobuf that stores the layer parameters */
         LayerParameter layer_param_;
         /** The phase: TRAIN or TEST */
@@ -371,7 +372,7 @@ namespace caffe {
             if (EqualNumBottomTopBlobs()) {
                 CHECK_EQ(bottom.size(), top.size())
                     << type() << " Layer produces one top blob as output for each "
-                    << "bottom blob input.";    
+                    << "bottom blob input.";
             }
         }
         /**
@@ -396,16 +397,80 @@ namespace caffe {
                 }
             }
         }
-        
+
         // ------------------------------ 私有成员
-        private: 
+        private:
         DISABLE_COPY_AND_ASSIGN(Layer);
     }; // class Layer
 
     // ******************************** some implements
+    // forward and backward wrappers. you should implement the cpu and gpu
+    // specific implementations instead, and should not change these functions
+    // 也就是这些函数实现是封装好的，这样不同的类型层，只要执行不同的实现即可调用Forward完成对应的前传操作
+    template <typename Dtype>
+    inline Dtype Layer<Dtype>::Forward(const vector<Blob<Dtype>*>& bottom,
+        const vector<Blob<Dtype>*>& top){
+        Dtype loss = 0;
+        Reshape(bottom, top); // this is abstract function, every kind of layer has itself implementation.
+        switch(Caffe::mode()){
+        case Caffe::CPU:
+            Forward_cpu(bottom, top);
+            for (int top_id = 0; top_id < top.size(); ++top_id) {
+                if (!this->loss(top_id)){ continue; }
+                const int count = top[top_id]->count();
+                const Dtype* data = top[top_id]->cpu_data();
+                const Dtype* loss_weights = top[top_id]->cpu_diff();
+                loss += caffe_cpu_dot(count, data, loss_weights); // data*
+            }
+            break;
+        case Caffe::GPU:
+            Forward_gpu(bottom, top);
+        #ifndef CPU_ONLY
+            // 如果没有loss_weight,那么该层创建的时候setup函数中setLossWeight不会调用
+            // set_loss,也就不会更改成员变量loss_， 从而this->loss(top_id)==0, 所以loss就不会被累加
+            for(int top_id=0; top_id < top.size(); ++top_id){
+                if(!this->loss(top_id)) { continue; }
+                const int count = top[top_id]->count();
+                const Dtype* data = top[top_id]->gpu_data();
+                const Dtype* loss_weights = top[top_id]->gpu_diff();
+                Dtype blob_loss = 0;
+                caffe_gpu_dot(count, data, loss_weights, &blob_loss);
+                loss += blob_loss;
+            }
+        #endif
+            break;
+        default:
+            LOG(FATAL)<< "Unknown caffe mode.";
+        }
+        return loss;
+    }
+    template <typename Dtype>
+    inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
+        const vector<bool>& propagate_down,
+        const vector<Blob<Dtype>*>& bottom){
+        switch(Caffe::mode()){
+        case Caffe::CPU:
+            Backward_cpu(top, propagate_down, bottom);
+            break;
+        case Caffe::GPU:
+            Backward_gpu(top, propagate_down, bottom);
+            break;
+        default:
+            LOG(FATAL)<< "Unknown caffe mode.";
+        }
+    }
+    // serialize layerParameter to protocol buffer
+    template <typename Dtype>
+    void Layer<Dtype>::ToProto(LayerParameter* param, bool write_diff){
+        param->Clear();
+        param->CopyFrom(layer_param_);
+        param->clear_blobs();
+        for (int i =0; i < blobs_.size(); ++i){
+            // write_diff是否写梯度， 在snapshot 的时候可能需要
+            blobs_[i]->ToProto(param->add_blobs(), write_diff);
+        }
+    }
 
 } // namespace caffe
-
-
 
 #endif
