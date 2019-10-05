@@ -412,7 +412,7 @@ namespace caffe {
         const vector<Blob<Dtype>*>& top){
         Dtype loss = 0;
         Reshape(bottom, top); // this is abstract function, every kind of layer has itself implementation.
-        switch(Caffe::mode()){
+        switch(Caffe::mode){
         case Caffe::CPU:
             Forward_cpu(bottom, top);
             for (int top_id = 0; top_id < top.size(); ++top_id) {
@@ -449,7 +449,7 @@ namespace caffe {
         const vector<bool>& propagate_down,
         const vector<Blob<Dtype>*>& bottom){
         switch(Caffe::mode()){
-        case Caffe::CPU:
+        case Caffe:CPU:
             Backward_cpu(top, propagate_down, bottom);
             break;
         case Caffe::GPU:
@@ -466,11 +466,11 @@ namespace caffe {
         param->CopyFrom(layer_param_);
         param->clear_blobs();
         for (int i =0; i < blobs_.size(); ++i){
-            // write_diff是否写梯度， 在snapshot 的时候可能需要
             blobs_[i]->ToProto(param->add_blobs(), write_diff);
         }
     }
 
 } // namespace caffe
+
 
 #endif

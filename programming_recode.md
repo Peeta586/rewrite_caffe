@@ -757,6 +757,83 @@ caffe::Net *net = new caffe::Net("train_val_deploy.prototxt", caffe::TEST, 0, &s
         virtual inline bool EqualNumBottomTopBlobs() const { return false; }
 ```
 
+## 19. layer.hpp的逻辑解释
+layer是抽象类，该类定义了一些工具函数，我们每实现不同类型的类，就只要实现一些通用的函数即可，然后再通过调用一些设定好的工具函数，即可自定义化的实现对应类别的类的操作;
+- setup 函数， 1）检查bottom和top的大小是否符合规; 2)layersetup 配置配一层的layer_param， 这个通过prototxt中读取; 3) Reshape：是保证bottom和top对应; SetLossWeights 在计算损失的时候设置， 如果中间层（非损失计算层）则不会设置，这样在Forward中就不会累计loss。
+```C++
+* Checks that the number of bottom and top blobs is correct.
+* Calls LayerSetUp to do special layer setup for individual layer types,
+* followed by Reshape to set up sizes of top blobs and internal buffers.
+* Sets up the loss weight multiplier blobs for any non-zero loss weights.
+* This method may not be overridden.
+* 这个是通用函数，然后里面调用的函数根据不同的层进行自定义
+*/
+void SetUp(const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top){
+  CheckBlobCounts(bottom, top); // 计算输入输出是否符合最小最大或者实际大小
+  LayerSetUp(bottom, top); // 每一层有自己的setup定制化
+  Reshape(bottom, top);
+  SetLossWeights(top); // 设置输出的fmaps的loss_weight， 一般会在最后输出层会有这个设置
+                      // 并且SetLossWeights的设置会影响loss的累计计算
+}
+```
+- Forward函数， 这个函数针对当前Caffe::mode()的状态，执行对应的forward函数Forward_cpu/Forward_gpu， 并且累计loss，如果这个lossweight被设置了，也就是this->loss_.size() 不为0，则会执行for循环里的内容，否则跳过，loss_放的是算法人员设计好的lossweight
+```C++
+template <typename Dtype>
+inline Dtype Layer<Dtype>::Forward(const vector<Blob<Dtype>*>& bottom,
+    const vector<Blob<Dtype>*>& top){
+    Dtype loss = 0;
+    Reshape(bottom, top); // this is abstract function, every kind of layer has itself implementation.
+    switch(Caffe::mode){
+    case Caffe::CPU:
+        Forward_cpu(bottom, top);
+        for (int top_id = 0; top_id < top.size(); ++top_id) {
+            if (!this->loss(top_id)){ continue; }
+            const int count = top[top_id]->count();
+            const Dtype* data = top[top_id]->cpu_data();
+            const Dtype* loss_weights = top[top_id]->cpu_diff();
+            loss += caffe_cpu_dot(count, data, loss_weights); // data*
+        }
+        break;
+    case Caffe::GPU:
+        Forward_gpu(bottom, top);
+    #ifndef CPU_ONLY
+        // 如果没有loss_weight,那么该层创建的时候setup函数中setLossWeight不会调用
+        // set_loss,也就不会更改成员变量loss_， 从而this->loss(top_id)==0, 所以loss就不会被累加
+        for(int top_id=0; top_id < top.size(); ++top_id){
+            if(!this->loss(top_id)) { continue; }
+            const int count = top[top_id]->count();
+            const Dtype* data = top[top_id]->gpu_data();
+            const Dtype* loss_weights = top[top_id]->gpu_diff();
+            Dtype blob_loss = 0;
+            caffe_gpu_dot(count, data, loss_weights, &blob_loss);
+            loss += blob_loss;
+        }
+    #endif
+        break;
+    default:
+        LOG(FATAL)<< "Unknown caffe mode.";
+    }
+}
+```
+- Backward同理
+```C++
+template <typename Dtype>
+inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
+    const vector<bool>& propagate_down,
+    const vector<Blob<Dtype>*>& bottom){
+    switch(Caffe::mode()){
+    case Caffe:CPU:
+        Backward_cpu(top, propagate_down, bottom);
+        break;
+    case Caffe::GPU:
+        Backward_gpu(top, propagate_down, bottom);
+        break;
+    default:
+        LOG(FATAL)<< "Unknown caffe mode.";
+    }
+}
+```
+
 
 # 错误记录
 
