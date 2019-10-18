@@ -117,9 +117,9 @@ set(MONITOR_OMIT_DATA_INIT     "0")
 set(MONITOR_OMIT_T_CHECKS      "0")
 target_compile_definitions(test_elf
     PRIVATE
-    MONITOR_OMIT_BSS_INIT=${MONITOR_OMIT_BSS_INIT}              
-    MONITOR_OMIT_DATA_INIT=${MONITOR_OMIT_DATA_INIT}            
-    MONITOR_TRAP_NT_IRQS=${MONITOR_TRAP_NT_IRQS}                          
+    MONITOR_OMIT_BSS_INIT=${MONITOR_OMIT_BSS_INIT}
+    MONITOR_OMIT_DATA_INIT=${MONITOR_OMIT_DATA_INIT}
+    MONITOR_TRAP_NT_IRQS=${MONITOR_TRAP_NT_IRQS}
 )
 
 # 其他编译选项定义，e.g -fPIC
@@ -157,6 +157,16 @@ explicit RNG(const RNG&);// 用其他的RNG内部的generator_设置为当前的
 // Make sure each thread can have different values.
 // boost::thread_specific_ptr是线程局部存储机制
 // 一开始的值是NULL
+/*更深层次的理解是：
+-我们将类的所有函数声明为静态，这样我们直接用函数名访问即可； 但是我们要是使用多线程的话，他们的成员变量是一样的，为了各自独立，我们构建一个Get，这样会产生一个根据不同线程创建不同实例的操作； 这样如果是同一个线程，又因为所有的对象操作都是用Get().memeber_, 所以不同的线程维护不同的实例；
+
+也就是内部是根据不同线程创建不同实例，来实现线程独立的
+
+在使用的时候，也就是外部，都是用类::静态函数的方式访问的。
+
+注意，所有使用成员变量的操作都用Get().member_替代，而不是直接使用变量； 这样才能实现Get控制对象在不同线程上的独立。
+
+*/
 static boost::thread_specific_ptr<Caffe> thread_instance_;
 
 Caffe& Caffe::Get() {
