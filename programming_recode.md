@@ -75,8 +75,8 @@ Generator expressions can be nested, as shown in most of the examples below.
 > 扩展知识：
 添加编译时的选项方法如下：
 
-- add_compile_options() 可以给当前目录以及当前目录以下的目录的 sources 添加编译选项
-- 2. target_compile_definitions ：
+- 1.add_compile_options() 可以给当前目录以及当前目录以下的目录的 sources 添加编译选项
+- 2.target_compile_definitions ：
 ```C++
 target_compile_definitions(<target>
    <INTERFACE|PUBLIC|PRIVATE> [items1...]
@@ -84,7 +84,7 @@ target_compile_definitions(<target>
 ```
 是给给定的 <target> 添加编译选项， <target> 指的是由 add_executable() 产生的可执行文件或 add_library() 添加进来的库。 <INTERFACE|PUBLIC|PRIVATE> 指的是 [items...] 选项可以传播的范围， PUBLIC and INTERFACE  会传播 <target> 的 INTERFACE_COMPILE_DEFINITIONS 属性， PRIVATE and PUBLIC 会传播 <target> 的 COMPILE_DEFINITIONS  属性。
 
-- add_definitions(-DFOO -DBAR ...) :可以给当前目录以及当前目录以下的目录的 sources 添加编译行命令。如 cmake . 这样的在命令行输入的命令。cmake的命令格式如下：
+- 3.add_definitions(-DFOO -DBAR ...) :可以给当前目录以及当前目录以下的目录的 sources 添加编译行命令。如 cmake . 这样的在命令行输入的命令。cmake的命令格式如下：
 ```
 1 cmake [<options>] (<path-to-source> | <path-to-existing-build>)
 2 cmake [(-D<var>=<value>)...] -P <cmake-script-file>
@@ -133,6 +133,28 @@ target_compile_options(test_elf
 ```
 
 > 注意： cmake中的options(variable desc ON|OFF), 这个是作用与cmake中的CPU_ONLY变量的，对C++源码中的#ifdef CPU_ONLY没有控制作用，这个是用来控制cmake是否在编译的时候定义target_compile_definitions中传入-DCPU_ONLY来控制源代码中的#ifdef CPU_ONLY; ==所以一定要分清一个是作用cmake脚本语言的，一个是作用c++的==
+
+-----
+> 扩展知识:
+> 与CMake的target_include_director关联的关键字PUBLIC，PRIVATE和INTERFACE的含义是什么？
+
+这些关键字用于告诉您何时传递给目标的包含目录的列表。当时，这意味着如果这些包含目录需要：
+
+> PUBLIC: 编译该目标本身。也就是 PUBLIC 表示编译目标本身, 第三方已经有.so, 也就是编译好了,我们不需要它作为自己工程源码进行在此编译了.
+>PRIVATE: 编译依赖于该目标的其他目标(如使用其公头)。
+>INTERFACE: 在上述两种情况下。
+
+当CMake编译目标时，它使用目标INCLUDE_DIRECTORIES，COMPILE_DEFINITIONS和COMPILE_OPTIONS属性。当您在target_include_directories()中使用PRIVATE关键字时，您可以告诉CMake填充这些目标属性。
+
+当CMake检测到目标A和另一个目标B之间的依赖关系时(就像使用target_link_libraries(A B)命令一样)，它会将B使用要求传递到A目标。那些目标使用要求是包含目录，编译定义等，任何依赖于B的目标必须满足。它们由上面列出的属性的INTERFACE_ *版本(如INTERFACE_INCLUDE_DIRECTORIES)指定，并在调用目标_ *()命令时使用INTERFACE关键字填充。
+
+PUBLIC关键字意味着大致PRIVATE INTERFACE。
+
+因此，假设您正在创建一个使用某些Boost头的库A。你会做的：
+
+> target_include_directories(一个PRIVATE ${Boost_INCLUDE_DIRS})，如果您只使用源文件(.cpp)或专用头文件(.h)中的Boost头。
+> target_include_directories(一个INTERFACE $ {Boost_INCLUDE_DIRS})如果你不在源文件中使用那些Boost头(因此，不需要它们编译A)。我实际上不能想到一个现实世界的例子。
+> target_include_directories(一个PUBLIC $ {Boost_INCLUDE_DIRS})如果您在公共头文件中使用这些Boost头文件，这些头文件包含在A的一些源文件中的BOTH中，也可能包含在A库的任何其他客户端中。
 
 ## 6. device_alternate.hpp
 配置 cuda的错误检查宏，以及配置block数目和threads数目
