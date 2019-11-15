@@ -838,3 +838,4 @@ src/caffe/CMakeFiles/caffeproto.dir/__/__/include/caffe/proto/caffe.pb.cc.o: inc
 2. common.hpp 有需要cudnn， device_alternate,
 3. 写common的测试代码test_common.cpp， 而它又需要syncedmem.hpp和math_functions.hpp
 4. blob.hpp, blob.cpp,  filler.hpp（对weight blob的填充）  test_blob.cpp
+5. write layer_factory  and test layer_factory, but before it, the db.hpp and io.hpp need to be writen.

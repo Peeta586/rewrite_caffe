@@ -354,3 +354,18 @@ message DataParameter {
     // limit of device memory for GPU training)
     optional uint32 prefetch = 10 [default = 4];
 }
+
+
+message Datum{
+    optional int32 channels = 1;
+    optional int32 height = 2;
+    optional int32 width = 3;
+
+    // the actual image data, in bytes
+    optional bytes data = 4;
+    optional int32 label = 5;
+    // Optionally, the datum could also hold float data.
+    repeated float float_data =6;
+    // if true data contains ean encoded image that need to be decoded
+    optional bool encoded =7 [default = false];
+}
