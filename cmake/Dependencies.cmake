@@ -102,6 +102,14 @@ endif()
 
 # ---[ OpenCV
 if(USE_OPENCV)
+  # message(STATUS "CMAKE_MODULE_PATH ++++++++++++ ${CMAKE_MODULE_PATH}")
+  # set(CMAKE_MODULE_PATH "/home/lshm/Documents/opencv-3.2.0/install/share/OpenCV/:${CMAKE_MODULE_PATH}" )
+  # 临时解决方案， 只要找到指定的opencv即可
+  # 方法一： include 如下
+  # include("/home/lshm/Documents/opencv-3.2.0/install/share/OpenCV/OpenCVConfig.cmake")
+  #方法二： 不管用 find_package(... PATHS /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+  #方法三： 管用 set(Opencv_DIR /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+  SET(OpenCV_DIR /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
   find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
   if(NOT OpenCV_FOUND) # if not OpenCV 3.x, then imgcodecs are not found
     find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc)

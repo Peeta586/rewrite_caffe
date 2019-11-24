@@ -876,6 +876,19 @@ src/caffe/CMakeFiles/caffeproto.dir/__/__/include/caffe/proto/caffe.pb.cc.o: inc
 - 这是在编译的时候出错， （因为错误说明指向的是.cpp/.h文件所以是编译出错，而不是链接出错）
 - 编译出错需要再blob中添加ifndef， 而ifndef添加的不太对导致了错误。
 
+## 3. ros的opencv导致了opencv的编译出错
+需要自己编译opencv源码，然后将Cmake编译转移到自编译的opencv路径中
+```shell
+# 临时解决方案， 只要找到指定的opencv即可
+# 方法一： include 如下
+# include("/home/lshm/Documents/opencv-3.2.0/install/share/OpenCV/OpenCVConfig.cmake")
+#方法二： 不管用 find_package(... PATHS /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+#方法三： 管用 set(Opencv_DIR /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+SET(OpenCV_DIR /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
+
+```
+
 
 
 # 工程实现顺序
