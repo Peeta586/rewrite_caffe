@@ -316,7 +316,9 @@ message LayerParameter {
     // for their implementation. These layers include an Engine type and
     // engine parameter for selecting the implementation.
     // The default for the engine is set by the ENGINE switch at compile-time.
-
+    
+    
+    optional DataParameter data_param = 107;
 
 }
 
