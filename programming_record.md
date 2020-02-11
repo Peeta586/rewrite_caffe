@@ -835,7 +835,20 @@ inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
 ```
 
 ## 20. neuronLayer的理解
-
+主要针对clip和一些激活函数这样的操作层的抽象, 因为这些层的输入和输出个数一样.
+所以它仅仅实现了reshape的一个操作
+```C++
+/**
+ *  个人理解:  neuronLayer主要是用于一些对神经元进行原地操作的一些操作类的抽象
+ *  也就是不进行太大的数值计算,而是对神经元进行一种过滤操作, 如clip,等操作; 可继承
+ *  neuronLayer; 正如类的如下说明, 输入和输出元素个数是一样的,只是进行了一些简单操作.
+ *
+ * @brief An interface for layers that take one blob as input (@f$ x @f$)
+ *        and produce one equally-sized blob as output (@f$ y @f$), where
+ *        each element of the output depends only on the corresponding input
+ *        element.
+ */
+```
 
 
 # 错误记录
