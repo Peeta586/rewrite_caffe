@@ -317,11 +317,18 @@ message LayerParameter {
     // engine parameter for selecting the implementation.
     // The default for the engine is set by the ENGINE switch at compile-time.
     
-    
+    optional ClipParameter clip_param = 148;
     optional DataParameter data_param = 107;
+    
+
 
 }
 
+
+message ClipParameter {
+    required float min = 1;
+    required float max = 2;
+}
 
 message DataParameter {
     enum DB {
