@@ -834,6 +834,9 @@ inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
 }
 ```
 
+## 20. neuronLayer的理解
+
+
 
 # 错误记录
 
