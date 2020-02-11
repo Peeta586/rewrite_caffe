@@ -25,8 +25,49 @@ class ClipLayer : public NeuronLayer<Dtype> {
      */
     explicit ClipLayer(const LayerParameter& param)
         : NeuronLayer<Dtype>(param){}
-    virtual inline const char* type() const { return "clip"; }
+    virtual inline const char* type() const { return "Clip"; }
 
+    protected: 
+    /**
+     * @param bottom input Blob vector (length 1)
+     *   -# @f$ (N \times C \times H \times W) @f$
+     *      the inputs @f$ x @f$
+     * @param top output Blob vector (length 1)
+     *   -# @f$ (N \times C \times H \times W) @f$
+     *      the computed outputs @f$
+     *        y = \max(min, \min(max, x))
+     *      @f$
+     */
+    virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom, 
+        const vector<Blob<Dtype>*>& top);
+    virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+        const vector<Blob<Dtype>*>& top);
+    
+    /**
+     * @ brief Compute the error gradient, w.r.t, the clipped input.
+     * 
+     * @param top output blob vector (length 1),  providing the error gradient with repect
+     * to the outputs.
+     * -# @f$ (N \times C \times H \times W) @f$
+   *      containing error gradients @f$ \frac{\partial E}{\partial y} @f$
+   *      with respect to computed outputs @f$ y @f$
+   * @param propagate_down see Layer::Backward. 这个函数调用Backward_cpu and Backward_gpu
+   * @param bottom input Blob vector (length 1)
+   *   -# @f$ (N \times C \times H \times W) @f$
+   *      the inputs @f$ x @f$; Backward fills their diff with
+   *      gradients @f$
+   *        \frac{\partial E}{\partial x} = \left\{
+   *        \begin{array}{lr}
+   *            0 & \mathrm{if} \; x < min \vee x > max \\
+   *            \frac{\partial E}{\partial y} & \mathrm{if} \; x \ge min \wedge x \le max
+   *        \end{array} \right.
+   *      @f$
+     * 
+     * */
+    virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+        const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
+    virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+        const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom);
 };
  
 } // namespace caffe

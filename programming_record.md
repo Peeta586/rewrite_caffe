@@ -850,6 +850,59 @@ inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
  */
 ```
 
+## 21. clip_layer 的理解
+根据如下代码解释, clip在反传播的时候,对于超出clip界限的值的梯度为零,也就是消除这些大梯度带来的影响; 而不是取边界值min/max;  因为前向传播的时候, 超出边界的值都取一个定值, 所以函数在边界外的梯度为0. 这是合理的.
+@param bottom input Blob vector (length 1)
+ -# @f$ (N \times C \times H \times W) @f$
+ the inputs @f$ x @f$; Backward fills their diff with gradients @f$
+\frac{\partial E}{\partial x} = \left\{
+\begin{array}{lr}
+  0 & \mathrm{if} \; x < min \vee x > max \\
+  \frac{\partial E}{\partial y} & \mathrm{if} \; x \ge min \wedge x \le max
+\end{array} \right.
+@f$
+
+## 22. 关于反传Backward中的vector<bool>& propagate_down
+由于C++中不提倡使用vector<bool>, 因为它不是个容器, 而且操作存在一些问题;
+标准库提供了两个替代品，它们满足几乎所有的需求:
+- 1. 第一个是deque<bool>　　deque提供了几乎多有vector所提供的，而且deque<bool> 保存真正的bool值
+- 2. bitset。　　bitset 不是STL容器，是C++标准库的一部分，大小在编译期固定，因此不支持插入和删除元素，不是迭代器，不支持iterator。压缩表示，每个值只占用一比特。提供vector<bool> 特有的 flip 成员函数，还有一些列其他操作位集所特有的成员函数。如果不在意没有迭代器和动态改变大小，bitset正合适。
+
+## 23. 关于LayerRegistry中,将字符串类型与Creator函数绑定的意义理解
+注册器中, 将string类型的type, 与产生对象实例的creator绑定; 这样的好处我以为可能是绑定的是函数指针, 而且这个时候没有实例被创建, 这样减小绑定时的压力; 而只有真正执行的时候, 绑定的函数才开始创建实例;
+```C++
+LayerRegisterer(const string& type,
+                        shared_ptr<Layer<Dtype> > (*creator)(const LayerParameter& )){
+            // LOG(INFO) <<"Registering layer type: " << type;
+            LayerRegistry<Dtype>::AddCreator(type, creator);
+        }
+
+// #type 它代表把宏的参数变成字符串, 如果type是 conv1, 则#type就是“conv1”
+#define REGISTER_LAYER_CREATOR(type, creator) \
+    static LayerRegisterer<float> g_creator_f_##type(#type, creator<float>); \
+    static LayerRegisterer<double> g_creator_d_##type(#type, creator<double>);
+
+#define REGISTER_LAYER_CLASS(type)  \
+template <typename Dtype> \
+shared_ptr<Layer<Dtype> > Creator_##type##Layer(const LayerParameter& param) \
+{ \
+    return shared_ptr<Layer<Dtype> >(new type##Layer<Dtype>(param)) \
+} \
+REGISTER_LAYER_CREATOR(type, Creator_##type##Layer)
+```
+
+## 24. KERNEL_LOOP逻辑理解
+注意这个循环是根据grid粒度进行跳动的, 这样就会使得每个block内的所有kernel函数执行完后, 都转移到下一个block中.
+```C++
+// CUDA: grid stride looping
+#define CUDA_KERNEL_LOOP(i, n) \
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
+       i < (n); \
+       i += blockDim.x * gridDim.x)
+
+```
+
+
 
 # 错误记录
 
