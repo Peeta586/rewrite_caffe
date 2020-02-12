@@ -902,6 +902,11 @@ REGISTER_LAYER_CREATOR(type, Creator_##type##Layer)
 
 ```
 
+## 25. Net中需要弄清楚的函数含义
+
+- Reshape(): 具体怎么用
+- ShareWeights():
+
 
 
 # 错误记录
