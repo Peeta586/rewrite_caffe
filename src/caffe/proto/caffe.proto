@@ -114,6 +114,14 @@ message ParamSpec {
 
 }
 
+
+message NetState {
+    optional Phase phase = 1 [default = TEST];
+    optional int32 level = 2 [default = 0];
+    repeated string stage = 3;    
+}
+
+
 /*
 作用：StateMeetsRule()中net的state是否满足NetStaterule
 用构造net时的输入phase/level/stage与prototxt中各层的规则(include/exclude)比较,决定本层是否要包含在net中判断rule是否相同，分为5个判断
@@ -377,4 +385,47 @@ message Datum{
     repeated float float_data =6;
     // if true data contains an encoded image that need to be decoded
     optional bool encoded =7 [default = false];
+}
+
+message InputParameter {
+  // This layer produces N >= 1 top blob(s) to be assigned manually.
+  // Define N shapes to set a shape for each top.
+  // Define 1 shape to set the same shape for every top.
+  // Define no shape to defer to reshaping manually.
+  repeated BlobShape shape = 1;
+}
+
+
+message NetParameter {
+    optional string name = 1; // consider giving the network a name
+    // DEPRECATED. See InputParameter. The input blobs to the network.
+    repeated string input = 3;
+    // DEPRECATED. See InputParameter. The shape of the input blobs.
+    repeated BlobShape input_shape = 8;
+
+    // 4D input dimensions -- deprecated.  Use "input_shape" instead.
+    // If specified, for each input blob there should be four
+    // values specifying the num, channels, height and width of the input blob.
+    // Thus, there should be a total of (4 * #input) numbers.
+    repeated int32 input_dim = 4;
+    // Whether the network will force every layer to carry out backward operation.
+    // If set False, then whether to carry out backward is determined
+    // automatically according to the net structure and learning rates.
+    optional bool force_backward = 5 [default = false];
+
+    // The current "state" of the network, including the phase, level, and stage.
+    // Some layers may be included/excluded depending on this state and the states
+    // specified in the layers' include and exclude fields.
+    optional NetState state = 6;
+
+    // Print debugging information about results while running Net::Forward,
+    // Net::Backward, and Net::Update.
+    optional bool debug_info = 7 [default = false];
+
+    // The layers that make up the net.  Each of their configurations, including
+    // connectivity and behavior, is specified as a LayerParameter.
+    repeated LayerParameter layer = 100; // ID 100 so layers are printed last.
+
+    // DEPRECATED: use layer instead
+    // repeated V1LayerParamter layers = 2;
 }
