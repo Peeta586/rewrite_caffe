@@ -248,6 +248,7 @@ class Net {
         const string& layer_name);
 
     // Invoked at specific points during an iteration
+    // 会不会是和pytorch中的hook函数一样, 是一个钩子函数, 用于跟踪数据前传播或反传中某一层的具体细节
     class Callback {
         protected: 
         virtual void run(int layer) = 0;
@@ -272,6 +273,68 @@ class Net {
     void add_after_backward(Callback* value) {
         after_backward_.push_back(value);
     }
+
+    protected: 
+    // Helpers for Init, 添加到网络指定层等
+    /// brief Append a new top blob to the net
+    void AppendTop(const NetParameter& param, const int layer_id,
+                    const int top_id, set<string>* available_blobs,
+                    map<string, int>* blob_name_to_idx);
+    /// brief append a new bottom blob to the net.
+    int AppendBottom(const NetParameter& param, const int layer_id,
+                   const int bottom_id, set<string>* available_blobs,
+                   map<string, int>* blob_name_to_idx);
+    /// @brief Append a new parameter blob to the net.
+    void AppendParam(const NetParameter& param, const int layer_id,
+                   const int param_id);
+
+    /// brief Helper for displaying debug info in forward
+    void ForwardDebugInfo(const int layer_id);
+    /// @brief Helper for displaying debug info in Backward.
+    void BackwardDebugInfo(const int layer_id);
+    /// @brief Helper for displaying debug info in Update.
+    void UpdateDebugInfo(const int param_id);
+
+    // 变量*************************
+    // network name
+    string name_;
+    // brief the phase: TRIAN or TEST
+    Phase phase_;
+
+    // brief Individual layers in the net
+    vector<shared_ptr<Layer<Dtype> > > layers_;
+    vector<string> layer_names_;
+    map<string,int> layer_names_index_;
+    vector<bool> layer_need_backward_; //相当于pytorch的required_grad
+
+    // brief the blobs storing intermediate results between the layer
+    vector<shared_ptr<Blob<Dtype> > > blobs_;  // 模型训练过程中的Feature map
+    vector<string> blob_names_;
+    map<string, int> blob_names_index_;
+    vector<blob> blob_need_backward_;
+
+    /// bottom_vecs stores the vectors containing the input for each layer.
+    /// They don't actually host the blobs (blobs_ does), so we simply store
+    /// pointers.
+    // 这是将blobs_中的实际内容抽象化, 用指针数组来表示层结构
+    vector<vector<Blob<Dtype>*> > bottom_vecs_;
+    vector<vector<int> > bottom_id_vecs_;
+    vector<vector<bool> > bottom_need_backward_;
+
+    /// top_vecs stores the vectors containing the output for each layer
+    vector<vector<Blob<Dtype>*> > top_vecs_;
+    vector<vector<int> > top_id_vecs_;
+
+    /// Vector of weight in the loss (or objective) function of each net blob,
+    /// indexed by blob_id.
+    // 计算损失函数时, 每个层的权重的损失系数, 以层为单位;
+    // 每个层都有一个param{ lr:, weight: }这是更新权重的时候的伸缩系数
+    vector<Dtype> blob_loss_weights_;
+    vector<vector<int> > param_id_vecs_;
+    vector<int> param_owners_;
+    vector<string> param_display_names_;
+    vector<pair<int,int> > param_layer_indices_;
+    map<string, int> param_names_index_;
 
     
 

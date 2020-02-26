@@ -15,7 +15,7 @@
 如果不添加该文件的include，则会产生caffe没定义; 因为它是第一个生成的.h文件，且含有namespace caffe {}的caffe命名空间定义
 ## 3. caffe::string 的来源
 是有namespace caffe{
-  std:string
+using  std:string
 }
 产生的; 这个申明在common.hpp中，
 **因此开始先写common.hpp**
@@ -906,7 +906,7 @@ REGISTER_LAYER_CREATOR(type, Creator_##type##Layer)
 
 - Reshape(): 具体怎么用
 - ShareWeights():
-- class Callback 的作用
+- class Callback 的作用: 可能和pytorch中的hook函数差不多, 用来回调模型回传或前传过程中的数据流动细节
 
 ## 26. Net中类的静态函数,引发的静态函数的使用条件
 - 静态成员函数的作用基本上相当于：一个带有命名空间的全局函数。
