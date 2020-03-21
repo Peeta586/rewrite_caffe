@@ -834,6 +834,16 @@ inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
 }
 ```
 
+## 20. cmake 中include_directories 和target_include_directories区别：
+include_directories(x/y) affects directory scope. All targets in this CMakeList, as well as those in all subdirectories added after the point of its call, will have the path x/y added to their include path.
+
+target_include_directories(t x/y) has target scope—it adds x/y to the include path for target t.
+
+You want the former one if all of your targets use the include directories in question. You want the latter one if the path is specific to a target, or if you want finer control of the path's visibility. The latter comes from the fact that target_include_directories() supports the PRIVATE, PUBLIC, and INTERFACE qualifiers.
+
+也就是target_include_directories显示地指定该头文件对应这个target， include_directories是对于全局所有target都有效
+
+
 
 # 错误记录
 
