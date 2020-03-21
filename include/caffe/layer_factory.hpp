@@ -128,6 +128,7 @@ namespace caffe {
     template <typename Dtype>
     class LayerRegisterer{
         public: 
+        // 函数指针作为参数的写法
         LayerRegisterer(const string& type,
                         shared_ptr<Layer<Dtype> > (*creator)(const LayerParameter& )){
             // LOG(INFO) <<"Registering layer type: " << type;
@@ -143,7 +144,7 @@ namespace caffe {
     template <typename Dtype> \
     shared_ptr<Layer<Dtype> > Creator_##type##Layer(const LayerParameter& param) \
     { \
-        return shared_ptr<Layer<Dtype> >(new type##Layer<Dtype>(param)) \
+        return shared_ptr<Layer<Dtype> >(new type##Layer<Dtype>(param)); \
     } \
     REGISTER_LAYER_CREATOR(type, Creator_##type##Layer) 
     

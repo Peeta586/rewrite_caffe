@@ -55,7 +55,8 @@
         "algorithm": "cpp",
         "string": "cpp",
         "*.txx": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "*.cuh": "cpp"
     },
     "C_Cpp.configurationWarnings": "Disabled"
 }

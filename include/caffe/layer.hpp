@@ -412,7 +412,7 @@ namespace caffe {
         const vector<Blob<Dtype>*>& top){
         Dtype loss = 0;
         Reshape(bottom, top); // this is abstract function, every kind of layer has itself implementation.
-        switch(Caffe::mode){
+        switch(Caffe::mode()){
         case Caffe::CPU:
             Forward_cpu(bottom, top);
             for (int top_id = 0; top_id < top.size(); ++top_id) {
@@ -449,7 +449,7 @@ namespace caffe {
         const vector<bool>& propagate_down,
         const vector<Blob<Dtype>*>& bottom){
         switch(Caffe::mode()){
-        case Caffe:CPU:
+        case Caffe::CPU:
             Backward_cpu(top, propagate_down, bottom);
             break;
         case Caffe::GPU:

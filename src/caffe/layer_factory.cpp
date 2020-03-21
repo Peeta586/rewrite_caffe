@@ -11,10 +11,24 @@
 #include "caffe/proto/caffe.pb.h"
 
 #ifdef USE_CUDNN
-
+// add some layer by cudnn
 #endif
 
 
 #ifdef WITH_PYTHON_LAYER
+// include python_layer.hpp
 
 #endif
+
+namespace caffe {
+
+// Get convolution layer according to engine
+// template <typename Dtype>
+// shared_ptr<Layer<Dtype> > GetCovolutionLayer(
+//     const LayerParameter& param) {
+//     CovolutionParameter conv_param = param.convolution_param();
+//     ConvolutionParamter_Engine engin = conv_param.engine()
+
+// }
+
+} // namespace caffe

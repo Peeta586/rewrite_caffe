@@ -15,7 +15,7 @@
 如果不添加该文件的include，则会产生caffe没定义; 因为它是第一个生成的.h文件，且含有namespace caffe {}的caffe命名空间定义
 ## 3. caffe::string 的来源
 是有namespace caffe{
-  std:string
+using  std:string
 }
 产生的; 这个申明在common.hpp中，
 **因此开始先写common.hpp**
@@ -834,6 +834,7 @@ inline void Layer<Dtype>::Backward(const vector<Blob<Dtype>*>& top,
 }
 ```
 
+<<<<<<< HEAD
 ## 20. cmake 中include_directories 和target_include_directories区别：
 include_directories(x/y) affects directory scope. All targets in this CMakeList, as well as those in all subdirectories added after the point of its call, will have the path x/y added to their include path.
 
@@ -843,6 +844,85 @@ You want the former one if all of your targets use the include directories in qu
 
 也就是target_include_directories显示地指定该头文件对应这个target， include_directories是对于全局所有target都有效
 
+=======
+## 20. neuronLayer的理解
+主要针对clip和一些激活函数这样的操作层的抽象, 因为这些层的输入和输出个数一样.
+所以它仅仅实现了reshape的一个操作
+```C++
+/**
+ *  个人理解:  neuronLayer主要是用于一些对神经元进行原地操作的一些操作类的抽象
+ *  也就是不进行太大的数值计算,而是对神经元进行一种过滤操作, 如clip,等操作; 可继承
+ *  neuronLayer; 正如类的如下说明, 输入和输出元素个数是一样的,只是进行了一些简单操作.
+ *
+ * @brief An interface for layers that take one blob as input (@f$ x @f$)
+ *        and produce one equally-sized blob as output (@f$ y @f$), where
+ *        each element of the output depends only on the corresponding input
+ *        element.
+ */
+```
+
+## 21. clip_layer 的理解
+根据如下代码解释, clip在反传播的时候,对于超出clip界限的值的梯度为零,也就是消除这些大梯度带来的影响; 而不是取边界值min/max;  因为前向传播的时候, 超出边界的值都取一个定值, 所以函数在边界外的梯度为0. 这是合理的.
+@param bottom input Blob vector (length 1)
+ -# @f$ (N \times C \times H \times W) @f$
+ the inputs @f$ x @f$; Backward fills their diff with gradients @f$
+\frac{\partial E}{\partial x} = \left\{
+\begin{array}{lr}
+  0 & \mathrm{if} \; x < min \vee x > max \\
+  \frac{\partial E}{\partial y} & \mathrm{if} \; x \ge min \wedge x \le max
+\end{array} \right.
+@f$
+
+## 22. 关于反传Backward中的vector<bool>& propagate_down
+由于C++中不提倡使用vector<bool>, 因为它不是个容器, 而且操作存在一些问题;
+标准库提供了两个替代品，它们满足几乎所有的需求:
+- 1. 第一个是deque<bool>　　deque提供了几乎多有vector所提供的，而且deque<bool> 保存真正的bool值
+- 2. bitset。　　bitset 不是STL容器，是C++标准库的一部分，大小在编译期固定，因此不支持插入和删除元素，不是迭代器，不支持iterator。压缩表示，每个值只占用一比特。提供vector<bool> 特有的 flip 成员函数，还有一些列其他操作位集所特有的成员函数。如果不在意没有迭代器和动态改变大小，bitset正合适。
+
+## 23. 关于LayerRegistry中,将字符串类型与Creator函数绑定的意义理解
+注册器中, 将string类型的type, 与产生对象实例的creator绑定; 这样的好处我以为可能是绑定的是函数指针, 而且这个时候没有实例被创建, 这样减小绑定时的压力; 而只有真正执行的时候, 绑定的函数才开始创建实例;
+```C++
+LayerRegisterer(const string& type,
+                        shared_ptr<Layer<Dtype> > (*creator)(const LayerParameter& )){
+            // LOG(INFO) <<"Registering layer type: " << type;
+            LayerRegistry<Dtype>::AddCreator(type, creator);
+        }
+
+// #type 它代表把宏的参数变成字符串, 如果type是 conv1, 则#type就是“conv1”
+#define REGISTER_LAYER_CREATOR(type, creator) \
+    static LayerRegisterer<float> g_creator_f_##type(#type, creator<float>); \
+    static LayerRegisterer<double> g_creator_d_##type(#type, creator<double>);
+
+#define REGISTER_LAYER_CLASS(type)  \
+template <typename Dtype> \
+shared_ptr<Layer<Dtype> > Creator_##type##Layer(const LayerParameter& param) \
+{ \
+    return shared_ptr<Layer<Dtype> >(new type##Layer<Dtype>(param)) \
+} \
+REGISTER_LAYER_CREATOR(type, Creator_##type##Layer)
+```
+
+## 24. KERNEL_LOOP逻辑理解
+注意这个循环是根据grid粒度进行跳动的, 这样就会使得每个block内的所有kernel函数执行完后, 都转移到下一个block中.
+```C++
+// CUDA: grid stride looping
+#define CUDA_KERNEL_LOOP(i, n) \
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
+       i < (n); \
+       i += blockDim.x * gridDim.x)
+
+```
+
+## 25. Net中需要弄清楚的函数含义
+
+- Reshape(): 具体怎么用
+- ShareWeights():
+- class Callback 的作用: 可能和pytorch中的hook函数差不多, 用来回调模型回传或前传过程中的数据流动细节
+
+## 26. Net中类的静态函数,引发的静态函数的使用条件
+- 静态成员函数的作用基本上相当于：一个带有命名空间的全局函数。
+- 静态函数主要为了调用方便, 不需要生成对象就能调用;  也就是这个类要用的配套函数,我们可以写到类中, 用静态函数来定义,这样我们即能外部用,也能专属于类本身.
+>>>>>>> 02d28a128b24fc4db47e7975b54470aefab783a0
 
 
 # 错误记录
@@ -885,6 +965,19 @@ src/caffe/CMakeFiles/caffeproto.dir/__/__/include/caffe/proto/caffe.pb.cc.o: inc
 ## 2. redefinition of kMaxBlobAxes
 - 这是在编译的时候出错， （因为错误说明指向的是.cpp/.h文件所以是编译出错，而不是链接出错）
 - 编译出错需要再blob中添加ifndef， 而ifndef添加的不太对导致了错误。
+
+## 3. ros的opencv导致了opencv的编译出错
+需要自己编译opencv源码，然后将Cmake编译转移到自编译的opencv路径中
+```shell
+# 临时解决方案， 只要找到指定的opencv即可
+# 方法一： include 如下
+# include("/home/lshm/Documents/opencv-3.2.0/install/share/OpenCV/OpenCVConfig.cmake")
+#方法二： 不管用 find_package(... PATHS /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+#方法三： 管用 set(Opencv_DIR /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+SET(OpenCV_DIR /home/lshm/Documents/opencv-3.2.0/install/share/OpenCV)
+find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
+
+```
 
 
 
